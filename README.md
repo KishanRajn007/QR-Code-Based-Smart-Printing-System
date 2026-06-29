@@ -1,13 +1,14 @@
-\# 🖨️ QR Code Based Smart Printing System
+# 🖨️ QR Code Based Smart Printing System
 
+> A secure and intelligent web-based printing management system developed using **Flask, Python, MongoDB, HTML, CSS, and JavaScript**.
 
-
-A \*\*QR Code Based Smart Printing System\*\* is a web-based application developed using \*\*Flask, Python, MongoDB, HTML, CSS, and JavaScript\*\*. The system provides a secure and efficient platform for managing document printing through user authentication, QR code access, print request management, and administrator-controlled printer assignment.
-
-
-
-\---
-
+![Python](https://img.shields.io/badge/Python-3.13-blue?style=for-the-badge&logo=python)
+![Flask](https://img.shields.io/badge/Flask-Framework-black?style=for-the-badge&logo=flask)
+![MongoDB](https://img.shields.io/badge/MongoDB-Database-green?style=for-the-badge&logo=mongodb)
+![HTML5](https://img.shields.io/badge/HTML5-Markup-orange?style=for-the-badge&logo=html5)
+![CSS3](https://img.shields.io/badge/CSS3-Styling-blue?style=for-the-badge&logo=css3)
+![JavaScript](https://img.shields.io/badge/JavaScript-Frontend-yellow?style=for-the-badge&logo=javascript)
+![License](https://img.shields.io/badge/License-MIT-success?style=for-the-badge)
 
 
 \## 📌 Project Overview
