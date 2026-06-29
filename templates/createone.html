@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account | QR Access</title>
+
+<style>
+.glitter {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sparkle {
+  position: absolute;
+  top: -10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #272525, #272525 80%, transparent 100%);
+  box-shadow: 0 0 10px #272525;
+  opacity: 0.8;
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+}
+
+body {
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+}
+
+.container {
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(25px);
+  padding: 50px 40px;
+  border-radius: 24px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+  color: white;
+  width: 90%;
+  max-width: 400px;
+}
+
+h1 { margin-bottom: 10px; }
+
+p {
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 30px;
+}
+
+input {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #00d4ff, #9333ea);
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+a {
+  color: #00d4ff;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* MODALS */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-box {
+  background: linear-gradient(145deg,#1a1a2e,#16213e);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+  color: white;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+  animation: popIn 0.3s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.85); opacity: 0 }
+  to { transform: scale(1); opacity: 1 }
+}
+
+.modal-box h2 { margin-bottom: 10px; }
+
+.modal-box p {
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 20px;
+}
+
+.modal-box button {
+  width: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<div class="glitter">
+  <div class="sparkle" style="left:10%; animation-duration:6s;"></div>
+  <div class="sparkle" style="left:30%; animation-duration:8s;"></div>
+  <div class="sparkle" style="left:60%; animation-duration:5s;"></div>
+  <div class="sparkle" style="left:80%; animation-duration:7s;"></div>
+</div>
+
+<div class="container">
+  <h1>Create Account</h1>
+  <p>Fill in your details below</p>
+
+  <input type="text" id="name" placeholder="Full Name" required>
+
+  <input type="tel" id="phone" placeholder="Phone Number"
+         maxlength="10"
+         oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)"
+         required>
+
+  <input type="email" id="email" placeholder="Email Address" required>
+
+  <input type="password" id="password" placeholder="Password" required>
+
+  <button onclick="signupUser()">Create Account</button>
+
+  <a href="/">← Back to Login</a>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-overlay" id="thankModal">
+  <div class="modal-box">
+    <h2>Success 🎉</h2>
+    <p>Your account has been created.</p>
+    <button onclick="window.location.href='/'">Go to Login</button>
+  </div>
+</div>
+
+<!-- CUSTOM ALERT MODAL -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal-box">
+    <h2>⚠️ Notice</h2>
+    <p id="alertMessage"></p>
+    <button onclick="closeAlert()">OK</button>
+  </div>
+</div>
+
+<script>
+function showAlert(message) {
+    document.getElementById("alertMessage").innerText = message;
+    document.getElementById("alertModal").classList.add("active");
+}
+
+function closeAlert() {
+    document.getElementById("alertModal").classList.remove("active");
+}
+
+async function signupUser() {
+    const name = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (name.length < 3) {
+        showAlert("Name must be at least 3 characters");
+        return;
+    }
+
+    if (!/^[0-9]{10}$/.test(phone)) {
+        showAlert("Phone must be exactly 10 digits");
+        return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        showAlert("Invalid email format");
+        return;
+    }
+
+    if (!/(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}/.test(password)) {
+        showAlert("Password must contain uppercase, lowercase, number & 6+ characters");
+        return;
+    }
+
+    const res = await fetch('/signup', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({name, phone, email, password})
+    });
+
+    if (res.ok) {
+        document.getElementById("thankModal").classList.add("active");
+    } else {
+        showAlert(await res.text());
+    }
+}
+</script>
+
+</body>
+</html>

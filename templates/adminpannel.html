@@ -1,0 +1,2969 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Smart Printing System – Admin</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-grad: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      --cyan: #00d4ff;
+      --purple: #9333ea;
+      --gold: #facc15;
+      --glass-bg: rgba(255, 255, 255, 0.06);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-hover: rgba(255, 255, 255, 0.10);
+      --text-primary: #e8f4fd;
+      --text-muted: rgba(232, 244, 253, 0.55);
+      --sidebar-w: 240px;
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --btn-grad: linear-gradient(90deg, var(--cyan), var(--purple));
+    }
+
+    html,
+    body {
+      height: 100%;
+
+      background: var(--bg-grad);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-right: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 16px 24px;
+      gap: 4px;
+      z-index: 10;
+      animation: slideInLeft .45s ease both;
+    }
+
+    @keyframes slideInLeft {
+      from {
+        transform: translateX(-40px);
+        opacity: 0
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1
+      }
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px 24px;
+      border-bottom: 1px solid var(--glass-border);
+      margin-bottom: 10px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--btn-grad);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px rgba(0, 212, 255, .28);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--btn-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .nav-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 10px 14px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background .2s, transform .18s, border-color .2s;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      position: relative;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--glass-hover);
+      color: var(--text-primary);
+      transform: translateX(4px);
+      border-color: var(--glass-border);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(0, 212, 255, .15), rgba(147, 51, 234, .10));
+      color: var(--cyan);
+      border-color: rgba(0, 212, 255, .25);
+      box-shadow: 0 0 16px rgba(0, 212, 255, .10);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--btn-grad);
+    }
+
+    .nav-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .nav-item.logout {
+      color: rgba(250, 80, 80, .7);
+    }
+
+    .nav-item.logout:hover {
+      color: #ff6b6b;
+      background: rgba(255, 80, 80, .08);
+      border-color: rgba(255, 80, 80, .2);
+    }
+
+    .sidebar-spacer {
+      flex: 1;
+    }
+
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 28px 40px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 212, 255, .3) transparent;
+    }
+
+    .main::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .main::-webkit-scrollbar-thumb {
+      background: rgba(0, 212, 255, .3);
+      border-radius: 4px;
+    }
+
+    /* ── PAGES ── */
+    .page {
+      display: none;
+      flex-direction: column;
+      gap: 24px;
+      animation: pageIn .38s ease both;
+    }
+
+    .page.active {
+      display: flex;
+    }
+
+    @keyframes pageIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 14px 24px;
+    }
+
+    .topbar-left h1 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .topbar-left h1 span {
+      background: var(--btn-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .topbar-left p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-badge {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: linear-gradient(90deg, rgba(0, 212, 255, .15), rgba(147, 51, 234, .12));
+      border: 1px solid rgba(0, 212, 255, .25);
+      color: var(--cyan);
+    }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--btn-grad);
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(0, 212, 255, .28);
+      cursor: pointer;
+    }
+
+    /* ── GLASS PANEL ── */
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      transition: border-color .25s;
+    }
+
+    .glass-panel:hover {
+      border-color: rgba(0, 212, 255, .2);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .panel-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .panel-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid;
+    }
+
+    .panel-badge.cyan {
+      color: var(--cyan);
+      border-color: rgba(0, 212, 255, .3);
+      background: rgba(0, 212, 255, .08);
+    }
+
+    .panel-badge.purple {
+      color: #c084fc;
+      border-color: rgba(147, 51, 234, .3);
+      background: rgba(147, 51, 234, .08);
+    }
+
+    .panel-badge.gold {
+      color: var(--gold);
+      border-color: rgba(250, 204, 21, .3);
+      background: rgba(250, 204, 21, .08);
+    }
+
+    /* ── STAT CARDS ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .stat-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 22px 22px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+      cursor: default;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 30px rgba(0, 212, 255, .18), 0 8px 32px rgba(0, 0, 0, .3);
+      border-color: rgba(0, 212, 255, .35);
+    }
+
+    .stat-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .stat-icon.cyan {
+      background: rgba(0, 212, 255, .15);
+      box-shadow: 0 0 14px rgba(0, 212, 255, .2);
+    }
+
+    .stat-icon.purple {
+      background: rgba(147, 51, 234, .15);
+      box-shadow: 0 0 14px rgba(147, 51, 234, .2);
+    }
+
+    .stat-icon.gold {
+      background: rgba(250, 204, 21, .15);
+      box-shadow: 0 0 14px rgba(250, 204, 21, .2);
+    }
+
+    .stat-icon.green {
+      background: rgba(34, 197, 94, .15);
+      box-shadow: 0 0 14px rgba(34, 197, 94, .2);
+    }
+
+    .stat-trend {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(34, 197, 94, .15);
+      color: #4ade80;
+    }
+
+    .stat-trend.down {
+      background: rgba(248, 113, 113, .15);
+      color: #f87171;
+    }
+
+    .stat-trend.live {
+      background: rgba(0, 212, 255, .12);
+      color: var(--cyan);
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.cyan {
+      color: var(--cyan)
+    }
+
+    .stat-value.purple {
+      color: #c084fc
+    }
+
+    .stat-value.gold {
+      color: var(--gold)
+    }
+
+    .stat-value.green {
+      color: #4ade80
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .stat-bar {
+      height: 3px;
+      background: rgba(255, 255, 255, .08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .stat-bar-fill.cyan {
+      background: var(--btn-grad);
+    }
+
+    .stat-bar-fill.purple {
+      background: linear-gradient(90deg, #9333ea, #c084fc);
+    }
+
+    .stat-bar-fill.gold {
+      background: linear-gradient(90deg, #f59e0b, var(--gold));
+    }
+
+    .stat-bar-fill.green {
+      background: linear-gradient(90deg, #16a34a, #4ade80);
+    }
+
+    /* ── CHARTS ── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1.8fr 1.6fr;
+      gap: 18px;
+    }
+
+    .chart-wrap canvas {
+      max-height: 200px;
+    }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .analytics-full {
+      grid-column: 1/-1;
+    }
+
+    /* ── BOTTOM ROW ── */
+    .bottom-row {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    /* ── TABLE ── */
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--glass-border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+      transition: background .18s;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, .04);
+    }
+
+    tbody td {
+      padding: 11px 14px;
+      vertical-align: middle;
+    }
+
+    .td-file {
+      color: var(--cyan);
+      font-size: 12px;
+    }
+
+    .td-user {
+      font-weight: 600;
+      font-size: 12.5px;
+    }
+
+    .td-pages {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .4px;
+    }
+
+    .status-pending {
+      background: rgba(250, 204, 21, .15);
+      color: var(--gold);
+      border: 1px solid rgba(250, 204, 21, .3);
+    }
+
+    .status-approved {
+      background: rgba(34, 197, 94, .15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, .3);
+    }
+
+    .status-rejected {
+      background: rgba(248, 113, 113, .15);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, .3);
+    }
+
+    .status-printed {
+      background: rgba(0, 212, 255, .12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 212, 255, .25);
+    }
+
+    .btn-action {
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+    }
+
+    .btn-action:hover {
+      opacity: .85;
+      transform: scale(1.04);
+    }
+
+    .btn-approve {
+      background: linear-gradient(90deg, rgba(0, 212, 255, .8), rgba(147, 51, 234, .8));
+      color: #fff;
+    }
+
+    .btn-reject {
+      background: rgba(248, 113, 113, .18);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, .3);
+    }
+
+    .btn-view {
+      background: rgba(255, 255, 255, .08);
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+    }
+
+    .printer-select {
+      background: rgba(255, 255, 255, .05) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(232,244,253,0.7)' viewBox='0 0 16 16'><path d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/></svg>") no-repeat right 14px center;
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px 36px 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      min-width: 145px;
+      outline: none;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .printer-select:hover {
+      background-color: rgba(255, 255, 255, .09);
+      border-color: rgba(0, 212, 255, 0.45);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+    }
+
+    .printer-select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+      background-color: rgba(255, 255, 255, .12);
+    }
+
+    .printer-select option {
+      background-color: #16213e; /* Dark theme background */
+      color: #e8f4fd;
+      font-size: 12.5px;
+      padding: 10px;
+    }
+
+    /* ── QUEUE ── */
+    .queue-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      transition: border-color .2s;
+    }
+
+    .queue-item:hover {
+      border-color: rgba(0, 212, 255, .25);
+    }
+
+    .queue-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .queue-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .queue-dot.yellow {
+      background: var(--gold);
+      box-shadow: 0 0 8px rgba(250, 204, 21, .5);
+    }
+
+    .queue-dot.cyan {
+      background: var(--cyan);
+      box-shadow: 0 0 8px rgba(0, 212, 255, .5);
+      animation: pulse 1.4s infinite;
+    }
+
+    .queue-dot.green {
+      background: #4ade80;
+      box-shadow: 0 0 8px rgba(74, 222, 128, .5);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .q-label {
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .q-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .queue-count {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .queue-count.yellow {
+      color: var(--gold)
+    }
+
+    .queue-count.cyan {
+      color: var(--cyan)
+    }
+
+    .queue-count.green {
+      color: #4ade80
+    }
+
+    .qa-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--text-muted);
+      margin: 16px 0 10px;
+    }
+
+    .qa-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .04);
+      font-size: 12px;
+    }
+
+    .qa-item:last-child {
+      border-bottom: none;
+    }
+
+    .qa-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .qa-item-text {
+      flex: 1;
+      color: var(--text-muted);
+    }
+
+    .qa-item-text strong {
+      color: var(--text-primary);
+    }
+
+    .qa-time {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* ── USERS ── */
+    .users-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .user-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      transition: transform .25s, border-color .25s;
+      cursor: default;
+      text-align: center;
+    }
+
+    .user-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0, 212, 255, .3);
+      box-shadow: 0 0 24px rgba(0, 212, 255, .12);
+    }
+
+    .user-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .user-stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 4px;
+    }
+
+    .user-stat {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .user-stat strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+
+    .user-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    .user-status.active {
+      background: rgba(34, 197, 94, .15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, .3);
+    }
+
+    .user-status.inactive {
+      background: rgba(248, 113, 113, .12);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, .25);
+    }
+
+    /* ── SETTINGS ── */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .setting-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      background: rgba(255, 255, 255, .04);
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+    }
+
+    .setting-label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .toggle {
+      width: 40px;
+      height: 22px;
+      background: rgba(255, 255, 255, .15);
+      border-radius: 11px;
+      position: relative;
+      cursor: pointer;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+
+    .toggle.on {
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .25s;
+    }
+
+    .toggle.on::after {
+      transform: translateX(18px);
+    }
+
+    .settings-btn {
+      margin-top: 6px;
+      padding: 11px 24px;
+      border: none;
+      border-radius: 12px;
+      background: var(--btn-grad);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+      width: 100%;
+    }
+
+    .settings-btn:hover {
+      opacity: .85;
+    }
+
+    /* ── PLACEHOLDER (logout) ── */
+    .page-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      gap: 16px;
+      text-align: center;
+    }
+
+    .placeholder-icon {
+      font-size: 64px;
+    }
+
+    .placeholder-title {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .placeholder-title span {
+      background: var(--btn-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .placeholder-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 360px;
+      line-height: 1.6;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 212, 255, .25);
+      border-radius: 4px
+    }
+
+    /* ── CUSTOM DROPDOWN ── */
+    .custom-dropdown {
+      position: relative;
+      display: inline-block;
+      user-select: none;
+    }
+
+    .dropdown-trigger {
+      background: rgba(255, 255, 255, .05);
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      min-width: 190px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-family: inherit;
+    }
+
+    .dropdown-trigger:hover {
+      background-color: rgba(255, 255, 255, .09);
+      border-color: rgba(0, 212, 255, 0.4);
+      box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
+    }
+
+    .custom-dropdown.open .dropdown-trigger {
+      border-color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
+      background-color: rgba(255, 255, 255, .1);
+    }
+
+    .dropdown-arrow {
+      font-size: 9px;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+
+    .custom-dropdown.open .dropdown-arrow {
+      transform: rotate(180deg);
+      color: var(--cyan);
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 212, 255, 0.08);
+      z-index: 100;
+      overflow: hidden;
+      animation: dropdownFadeIn 0.2s ease forwards;
+    }
+
+    @keyframes dropdownFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-option {
+      padding: 11px 16px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      text-align: left;
+    }
+
+    .dropdown-option:last-child {
+      border-bottom: none;
+    }
+
+    .dropdown-option:hover {
+      background: rgba(0, 212, 255, 0.08);
+      color: var(--cyan);
+      padding-left: 20px;
+    }
+
+    .dropdown-option.active {
+      background: linear-gradient(90deg, rgba(0, 212, 255, 0.15), rgba(147, 51, 234, 0.1));
+      color: var(--cyan);
+      font-weight: 600;
+      border-left: 3px solid var(--cyan);
+      padding-left: 13px;
+    }
+
+    /* ── USER DETAILS MODAL ── */
+    .user-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 20, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .user-modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .user-modal-box {
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 30px;
+      width: 90%;
+      max-width: 500px;
+      color: var(--text-primary);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.15);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .user-modal-overlay.active .user-modal-box {
+      transform: scale(1);
+    }
+
+    .user-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+    }
+
+    .user-modal-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--btn-grad);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+      overflow: hidden;
+    }
+
+    .user-modal-close {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: var(--text-muted);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 18px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .user-modal-close:hover {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      border-color: rgba(248, 113, 113, 0.3);
+      transform: rotate(90deg);
+    }
+
+    .user-modal-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .user-modal-stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .user-modal-stat-card:hover {
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .user-modal-stat-card strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--cyan);
+      line-height: 1.2;
+    }
+
+    .user-modal-stat-card small {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .user-modal-table-wrap {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    .user-modal-table-wrap table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .user-modal-table-wrap th {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 10.5px;
+      border-bottom: 1px solid var(--glass-border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .user-modal-table-wrap td {
+      padding: 10px 12px;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .user-modal-table-wrap tr:last-child td {
+      border-bottom: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- ══════════════ SIDEBAR ══════════════ -->
+    <aside class="sidebar">
+      <div class="sidebar-brand" style="cursor: pointer;"
+        onclick="navigate('dashboard', document.querySelector('.nav-item'))">
+        <div class="brand-icon" style="background: none; box-shadow: none; padding: 2px;">
+          <img src="/static/images/sk.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+        <div>
+          <div class="brand-title">QR Smart Print</div>
+          <div class="brand-sub">Admin Dashboard</div>
+        </div>
+      </div>
+
+      <div class="nav-label">Main Menu</div>
+      <div class="nav-item active" onclick="navigate('dashboard',this)"><span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate('users',this)"><span class="nav-icon">👥</span> Users</div>
+      <div class="nav-item" onclick="navigate('requests',this)"><span class="nav-icon">📄</span> Print Requests</div>
+      <div class="nav-item" onclick="navigate('queue',this)"><span class="nav-icon">⏳</span> Queue</div>
+      <div class="nav-item" onclick="navigate('analytics',this)"><span class="nav-icon">📈</span> Analytics</div>
+      <div class="nav-item" onclick="navigate('feedback',this)"><span class="nav-icon">💬</span> Feedback</div>
+      <div class="nav-label" style="margin-top:8px">System</div>
+      <div class="nav-item" onclick="navigate('settings',this)"><span class="nav-icon">⚙️</span> Settings</div>
+      <div class="sidebar-spacer"></div>
+      <div class="nav-item logout" onclick="navigate('logout',this)"><span class="nav-icon">🚪</span> Logout</div>
+    </aside>
+
+    <!-- ══════════════ MAIN ══════════════ -->
+    <main class="main">
+      <div id="adminError"
+        style="display:none;margin-bottom:18px;padding:16px;border-radius:16px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);color:#f87171;font-size:13px;">
+        Unable to load admin dashboard data. Please refresh or sign in again.
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: DASHBOARD  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page active" id="page-dashboard">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Admin <span>Dashboard</span></h1>
+            <p>Saturday, May 02, 2026 &nbsp;·&nbsp; Welcome back, Administrator</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge">🟢 System Online</div>
+            <div class="topbar-badge"
+              style="color:#c084fc;border-color:rgba(147,51,234,.3);background:rgba(147,51,234,.1)">🖨️ 3 Printers
+              Active</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon cyan">👥</div><span class="stat-trend">▲ 12%</span>
+            </div>
+            <div>
+              <div class="stat-value cyan">...</div>
+              <div class="stat-label"><b>Total Users</b></div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill cyan" style="width:78%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon purple">📄</div><span class="stat-trend">▲ 8%</span>
+            </div>
+            <div>
+              <div class="stat-value purple">...</div>
+              <div class="stat-label">Total Print Requests</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill purple" style="width:91%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon gold">⏳</div><span class="stat-trend down">▼ 3%</span>
+            </div>
+            <div>
+              <div class="stat-value gold">...</div>
+              <div class="stat-label">Pending Requests</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill gold" style="width:34%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon green">✅</div><span class="stat-trend">▲ 21%</span>
+            </div>
+            <div>
+              <div class="stat-value green">...</div>
+              <div class="stat-label">Printed Jobs</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill green" style="width:88%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Print Status</div>
+                <div class="panel-sub">All time overview</div>
+              </div><span class="panel-badge cyan">Live</span>
+            </div>
+            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+            <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--gold)">⬤ Pending</span>
+              <span style="font-size:11px;color:#4ade80">⬤ Approved</span>
+              <span style="font-size:11px;color:var(--cyan)">⬤ Printed</span>
+              <span style="font-size:11px;color:#f87171">⬤ Rejected</span>
+            </div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Daily Print Requests</div>
+                <div class="panel-sub">Last 7 days</div>
+              </div><span class="panel-badge purple">This Week</span>
+            </div>
+            <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">User Growth</div>
+                <div class="panel-sub">Monthly registrations</div>
+              </div><span class="panel-badge cyan">2026</span>
+            </div>
+            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="bottom-row">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Recent Print Requests</div>
+                <div class="panel-sub">Latest submissions</div>
+              </div><span class="panel-badge cyan">... Pending</span>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>File</th>
+                    <th>Pages</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Queue Summary</div>
+                <div class="panel-sub">Real-time status</div>
+              </div><span class="panel-badge cyan">Live</span>
+            </div>
+            <div class="queue-stats">
+              <div class="queue-item">
+                <div class="queue-item-left">
+                  <div class="queue-dot yellow"></div>
+                  <div>
+                    <div class="q-label">Pending Jobs</div>
+                    <div class="q-sub">Awaiting approval</div>
+                  </div>
+                </div>
+                <div class="queue-count yellow">...</div>
+              </div>
+              <div class="queue-item">
+                <div class="queue-item-left">
+                  <div class="queue-dot cyan"></div>
+                  <div>
+                    <div class="q-label">Active Jobs</div>
+                    <div class="q-sub">Currently printing</div>
+                  </div>
+                </div>
+                <div class="queue-count cyan">...</div>
+              </div>
+              <div class="queue-item">
+                <div class="queue-item-left">
+                  <div class="queue-dot green"></div>
+                  <div>
+                    <div class="q-label">Completed Today</div>
+                    <div class="q-sub">Finished jobs</div>
+                  </div>
+                </div>
+                <div class="queue-count green">...</div>
+              </div>
+            </div>
+            <div class="qa-title">Recent Activity</div>
+            <div id="dashboardActivity"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: USERS  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-users">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Manage <span>Users</span></h1>
+            <p>All registered accounts &nbsp;·&nbsp; ... total</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge">👥 ... Users</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon cyan">👥</div><span class="stat-trend">▲ 12%</span>
+            </div>
+            <div>
+              <div class="stat-value cyan">...</div>
+              <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill cyan" style="width:78%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon green">✅</div><span class="stat-trend">▲ 5%</span>
+            </div>
+            <div>
+              <div class="stat-value green">...</div>
+              <div class="stat-label">Active Users</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill green" style="width:86%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon gold">⭐</div><span class="stat-trend">▲ 3%</span>
+            </div>
+            <div>
+              <div class="stat-value gold">...</div>
+              <div class="stat-label">Premium Users</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill gold" style="width:14%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon purple">🆕</div><span class="stat-trend">▲ 9%</span>
+            </div>
+            <div>
+              <div class="stat-value purple">...</div>
+              <div class="stat-label">New This Month</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill purple" style="width:22%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">All Users</div>
+              <div class="panel-sub">Registered accounts overview</div>
+            </div><span class="panel-badge cyan">1,284 Users</span>
+          </div>
+          <div class="users-grid" id="usersGrid"></div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: PRINT REQUESTS  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-requests">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Print <span>Requests</span></h1>
+            <p>Review, approve or reject submitted jobs</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge">📄 ... Total</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon gold">⏳</div><span class="stat-trend down">▼ 3%</span>
+            </div>
+            <div>
+              <div class="stat-value gold">...</div>
+              <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill gold" style="width:34%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon cyan">✔️</div><span class="stat-trend">▲ 7%</span>
+            </div>
+            <div>
+              <div class="stat-value cyan">...</div>
+              <div class="stat-label">Approved</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill cyan" style="width:45%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon green">🖨️</div><span class="stat-trend">▲ 21%</span>
+            </div>
+            <div>
+              <div class="stat-value green">...</div>
+              <div class="stat-label">Printed</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill green" style="width:91%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon purple">❌</div><span class="stat-trend down">▼ 1%</span>
+            </div>
+            <div>
+              <div class="stat-value purple">...</div>
+              <div class="stat-label">Rejected</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill purple" style="width:12%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">All Print Requests</div>
+              <div class="panel-sub">Full list with actions</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="custom-dropdown" id="customDateDropdown">
+                <button class="dropdown-trigger" onclick="toggleCustomDropdown(event)">
+                  <span id="selectedOptionText">New Requests (Today)</span>
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="dropdown-menu" id="customDropdownMenu">
+                  <div class="dropdown-option active" data-value="today" onclick="selectDropdownOption(this)">New Requests (Today)</div>
+                  <div class="dropdown-option" data-value="yesterday" onclick="selectDropdownOption(this)">Yesterday</div>
+                  <div class="dropdown-option" data-value="week" onclick="selectDropdownOption(this)">Last 7 Days</div>
+                  <div class="dropdown-option" data-value="all" onclick="selectDropdownOption(this)">All Requests</div>
+                </div>
+              </div>
+              <input type="hidden" id="dateFilter" value="today">
+              <span class="panel-badge cyan">... Pending</span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>File</th>
+                  <th>Pages</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="requestsTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: QUEUE  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-queue">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>Print <span>Queue</span></h1>
+            <p>Live monitoring of all print jobs</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge">🟢 3 Printers Online</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon gold">⏳</div><span class="stat-trend live">● Live</span>
+            </div>
+            <div>
+              <div class="stat-value gold">...</div>
+              <div class="stat-label">Pending Jobs</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill gold" style="width:40%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon cyan">⚡</div><span class="stat-trend live">● Live</span>
+            </div>
+            <div>
+              <div class="stat-value cyan">...</div>
+              <div class="stat-label">Active / Printing</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill cyan" style="width:8%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon green">✅</div><span class="stat-trend">▲ 18%</span>
+            </div>
+            <div>
+              <div class="stat-value green">...</div>
+              <div class="stat-label">Completed Today</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill green" style="width:72%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon purple">🖨️</div><span class="stat-trend live">● Online</span>
+            </div>
+            <div>
+              <div class="stat-value purple">3</div>
+              <div class="stat-label">Printers Active</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill purple" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Active Print Jobs</div>
+                <div class="panel-sub">Currently processing</div>
+              </div><span class="panel-badge cyan">● Live</span>
+            </div>
+            <div id="activeJobsList"></div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Queue Activity Log</div>
+                <div class="panel-sub">Recent events today</div>
+              </div><span class="panel-badge purple">Today</span>
+            </div>
+            <div id="queueActivityLog"></div>
+          </div>
+        </div>
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Printer Status</div>
+              <div class="panel-sub">Hardware overview</div>
+            </div><span class="panel-badge cyan" id="onlinePrintersBadge">3 Online</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="printerStatus"></div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: ANALYTICS  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-analytics">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>System <span>Analytics</span></h1>
+            <p>Performance insights &nbsp;·&nbsp; Full year 2026</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge">📈 May 2026</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+        <div class="cards-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon cyan">📊</div><span class="stat-trend">▲ 14%</span>
+            </div>
+            <div>
+              <div class="stat-value cyan">...</div>
+              <div class="stat-label">Jobs Processed</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill cyan" style="width:88%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon green">⚡</div><span class="stat-trend">▲ 6%</span>
+            </div>
+            <div>
+              <div class="stat-value green">...</div>
+              <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill green" style="width:98%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon gold">⏱️</div><span class="stat-trend down">▼ 8%</span>
+            </div>
+            <div>
+              <div class="stat-value gold">...</div>
+              <div class="stat-label">Avg. Print Time</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill gold" style="width:55%"></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-icon purple">📋</div><span class="stat-trend">▲ 11%</span>
+            </div>
+            <div>
+              <div class="stat-value purple">...</div>
+              <div class="stat-label">Pages Printed</div>
+            </div>
+            <div class="stat-bar">
+              <div class="stat-bar-fill purple" style="width:76%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="analytics-grid">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Monthly Print Volume</div>
+                <div class="panel-sub">Jobs per month, 2026</div>
+              </div><span class="panel-badge cyan">2026</span>
+            </div>
+            <div class="chart-wrap"><canvas id="analyticsBar" style="max-height:220px"></canvas></div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Status Breakdown</div>
+                <div class="panel-sub">All time distribution</div>
+              </div><span class="panel-badge purple">All Time</span>
+            </div>
+            <div class="chart-wrap"><canvas id="analyticsPie" style="max-height:220px"></canvas></div>
+          </div>
+          <div class="glass-panel analytics-full">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">User &amp; Job Growth Trend</div>
+                <div class="panel-sub">Cumulative growth across 2026</div>
+              </div><span class="panel-badge cyan">Trend</span>
+            </div>
+            <div class="chart-wrap"><canvas id="analyticsLine" style="max-height:200px"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: SETTINGS  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-settings">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>System <span>Settings</span></h1>
+            <p>Configure your QR Smart Printing System</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge">⚙️ Admin</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🖨️ Printer Settings</div>
+                <div class="panel-sub">Hardware configuration</div>
+              </div>
+            </div>
+            <div class="setting-group" id="printerSettings"></div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🔔 Notifications</div>
+                <div class="panel-sub">Alert preferences</div>
+              </div>
+            </div>
+            <div class="setting-group" id="notifSettings"></div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🔐 Security</div>
+                <div class="panel-sub">Access & authentication</div>
+              </div>
+            </div>
+            <div class="setting-group" id="securitySettings"></div>
+          </div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">📊 System Info</div>
+                <div class="panel-sub">Version & diagnostics</div>
+              </div>
+            </div>
+            <div id="sysInfo"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: FEEDBACK  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-feedback">
+        <div class="topbar">
+          <div class="topbar-left">
+            <h1>User <span>Feedback</span></h1>
+            <p>Read ratings, comments, and reviews from students</p>
+          </div>
+          <div class="topbar-right">
+            <div class="topbar-badge" id="feedbackCountBadge">💬 0 Feedbacks</div>
+            <div class="avatar">A</div>
+          </div>
+        </div>
+        <div class="glass-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">All Feedback</div>
+              <div class="panel-sub">Ratings and reviews overview</div>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:20%;">User</th>
+                  <th style="width:20%;">Rating</th>
+                  <th style="width:45%;">Comments</th>
+                  <th style="width:15%;">Submitted At</th>
+                </tr>
+              </thead>
+              <tbody id="feedbackTable">
+                <tr>
+                  <td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Loading feedback data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓▓▓▓▓▓▓▓  PAGE: LOGOUT  ▓▓▓▓▓▓▓▓▓▓▓▓ -->
+      <div class="page" id="page-logout">
+        <div class="page-placeholder">
+          <div class="placeholder-icon">🔒</div>
+          <div class="placeholder-title">Sign <span>Out</span></div>
+          <div class="placeholder-sub">Are you sure you want to log out of the QR Smart Printing System admin panel?
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center">
+            <button onclick="navigate('dashboard',document.querySelector('.nav-item'))"
+              style="padding:12px 28px;border:none;border-radius:12px;background:var(--btn-grad);color:#fff;font-size:13px;font-weight:700;cursor:pointer">←
+              Go Back</button>
+            <a href="/admin-logout"
+              style="padding:12px 28px;border-radius:12px;background:rgba(248,113,113,.15);color:#f87171;font-size:13px;font-weight:700;cursor:pointer;border:1px solid rgba(248,113,113,.3);text-decoration:none;display:inline-block;box-sizing:border-box;">Confirm
+              Logout</a>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* ══ NAVIGATION ══ */
+    function navigate(pageId, navEl) {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      if (navEl) navEl.classList.add('active');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('page-' + pageId);
+      if (target) { target.classList.add('active'); }
+
+      if (pageId === 'feedback') {
+        renderFeedbackTable();
+      }
+    }
+
+    /* ══ CHART DEFAULTS ══ */
+    Chart.defaults.color = 'rgba(232,244,253,0.6)';
+    Chart.defaults.font.family = "var(--font-primary)";
+    Chart.defaults.font.size = 13;
+    Chart.defaults.font.weight = 'bold';
+    const gc = 'rgba(255,255,255,0.06)';
+
+    /* ══ DASHBOARD CHARTS ══ */
+    let pieChart, barChart, lineChart, analyticsBar, analyticsPie, analyticsLine;
+
+    function initAdminCharts() {
+      if (typeof Chart === 'undefined') {
+        console.warn('Chart.js not loaded; charts will not render.');
+        return;
+      }
+
+      try {
+        pieChart = new Chart(document.getElementById('pieChart'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Pending', 'Approved', 'Printed', 'Rejected'], datasets: [{
+              data: [],
+              backgroundColor: ['rgba(250,204,21,.75)', 'rgba(74,222,128,.75)', 'rgba(0,212,255,.75)', 'rgba(248,113,113,.75)'],
+              borderColor: ['#facc15', '#4ade80', '#00d4ff', '#f87171'], borderWidth: 2, hoverOffset: 8
+            }]
+          },
+          options: { cutout: '68%', plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15,20,60,.9)', borderColor: 'rgba(0,212,255,.3)', borderWidth: 1 } }, animation: { duration: 1000 } }
+        });
+
+        barChart = new Chart(document.getElementById('barChart'), {
+          type: 'bar',
+          data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets: [{
+              label: 'Requests', data: [],
+              backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200); g.addColorStop(0, 'rgba(0,212,255,.85)'); g.addColorStop(1, 'rgba(147,51,234,.3)'); return g; },
+              borderColor: '#00d4ff', borderWidth: 1, borderRadius: 8, borderSkipped: false
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15,20,60,.9)', borderColor: 'rgba(0,212,255,.3)', borderWidth: 1 } },
+            scales: { x: { grid: { color: gc } }, y: { grid: { color: gc } } }, animation: { duration: 900 }
+          }
+        });
+
+        lineChart = new Chart(document.getElementById('lineChart'), {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], datasets: [{
+              label: 'Users', data: [],
+              borderColor: '#9333ea',
+              backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 180); g.addColorStop(0, 'rgba(147,51,234,.35)'); g.addColorStop(1, 'rgba(147,51,234,.02)'); return g; },
+              fill: true, tension: 0.45, pointBackgroundColor: '#c084fc', pointBorderColor: '#9333ea', pointRadius: 4, pointHoverRadius: 7
+            }]
+          },
+          options: {
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15,20,60,.9)', borderColor: 'rgba(147,51,234,.3)', borderWidth: 1 } },
+            scales: { x: { grid: { color: gc } }, y: { grid: { color: gc } } }, animation: { duration: 900 }
+          }
+        });
+      } catch (chartError) {
+        console.error('Chart initialization failed:', chartError);
+      }
+    }
+
+    initAdminCharts();
+
+    /* ══ GLOBAL DATA ══ */
+    let tableData = [];
+    let acts = [];
+    let users = [];
+    let printerList = [];
+    let feedbackItems = [];
+
+    const statusMap = {
+      pending: '<span class="status-badge status-pending">Pending</span>',
+      awaiting_payment: '<span class="status-badge status-pending" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">Awaiting Payment</span>',
+      approved: '<span class="status-badge status-approved">Approved</span>',
+      printing: '<span class="status-badge status-live" style="background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.25)">Printing</span>',
+      rejected: '<span class="status-badge status-rejected">Rejected</span>',
+      printed: '<span class="status-badge status-printed">Printed</span>',
+    };
+
+    function showAdminError(message) {
+      const err = document.getElementById('adminError');
+      if (!err) return;
+      err.style.display = 'block';
+      err.textContent = message;
+    }
+
+    function hideAdminError() {
+      const err = document.getElementById('adminError');
+      if (!err) return;
+      err.style.display = 'none';
+      err.textContent = '';
+    }
+
+    let isLoadingData = false;
+
+    async function loadAdminData(force = true) {
+      if (isLoadingData && !force) return;
+      isLoadingData = true;
+      try {
+        hideAdminError();
+
+        const [statRes, reqRes, usrRes, printerRes, feedbackRes] = await Promise.allSettled([
+          fetch('/admin/api/dashboard-stats', { credentials: 'include' }),
+          fetch('/admin/api/requests', { credentials: 'include' }),
+          fetch('/admin/api/users', { credentials: 'include' }),
+          fetch('/admin/api/printers', { credentials: 'include' }),
+          fetch('/admin/api/feedback', { credentials: 'include' })
+        ]);
+
+        const stats = statRes.status === 'fulfilled' && statRes.value.ok ? await statRes.value.json() : null;
+        const tableDataJson = reqRes.status === 'fulfilled' && reqRes.value.ok ? await reqRes.value.json() : [];
+        const usersJson = usrRes.status === 'fulfilled' && usrRes.value.ok ? await usrRes.value.json() : [];
+        const printerJson = printerRes.status === 'fulfilled' && printerRes.value.ok ? await printerRes.value.json() : [];
+        const feedbackJson = feedbackRes.status === 'fulfilled' && feedbackRes.value.ok ? await feedbackRes.value.json() : { items: [] };
+
+        if (reqRes.status === 'fulfilled' && !reqRes.value.ok) {
+          const text = await reqRes.value.text().catch(() => '');
+          showAdminError(`Unable to load print requests (${reqRes.value.status}): ${text || 'Please sign in again or refresh the page.'}`);
+        }
+        if (reqRes.status === 'rejected') {
+          showAdminError(`Unable to load print requests: ${reqRes.reason?.message || 'Network error'}`);
+        }
+        if (usrRes.status === 'fulfilled' && !usrRes.value.ok) {
+          const text = await usrRes.value.text().catch(() => '');
+          showAdminError(`Unable to load user data (${usrRes.value.status}): ${text || 'Please sign in again or refresh the page.'}`);
+        }
+        if (usrRes.status === 'rejected') {
+          showAdminError(`Unable to load user data: ${usrRes.reason?.message || 'Network error'}`);
+        }
+
+        if (!stats || stats.error) {
+          showAdminError('Failed to load dashboard statistics. Please refresh the page.');
+          return;
+        }
+
+        tableData = tableDataJson;
+        // Sort: newest requests first
+        tableData.sort((a, b) => {
+          if (!a.created_at) return 1;
+          if (!b.created_at) return -1;
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+        
+        printerList = printerJson;
+        users = usersJson;
+        const feedbackResData = feedbackJson;
+        feedbackItems = feedbackResData.items || [];
+
+        renderTable('dashboardTable', false);
+        renderTable('requestsTable', true);
+
+        const jobActs = tableData.slice(0, 6).map(r => ({
+          user: r.user,
+          action: r.status === 'rejected' ? 'had a request rejected' : r.status === 'printed' ? 'completed a print' : `submitted a job (${r.status})`,
+          time: r.created_at || 'Recently',
+          color: r.status === 'approved' ? '#4ade80' : r.status === 'rejected' ? '#f87171' : r.status === 'printed' ? '#00d4ff' : '#facc15'
+        }));
+
+        const printerActs = printerList.flatMap(p => p.alerts.map(alert => ({ user: p.name, action: alert, time: 'Now', color: '#facc15' })));
+        const feedbackActs = feedbackItems.slice(0, 4).map(f => ({ user: f.user, action: `left feedback: ${f.feedback.substring(0, 60)}${f.feedback.length > 60 ? '…' : ''}`, time: f.created_at || 'Now', color: '#9333ea' }));
+
+        acts = [...printerActs, ...jobActs, ...feedbackActs].slice(0, 8);
+        renderActs('dashboardActivity', acts);
+
+        const colors = ['linear-gradient(135deg,#00d4ff,#9333ea)', 'linear-gradient(135deg,#9333ea,#c084fc)', 'linear-gradient(135deg,#facc15,#f59e0b)', 'linear-gradient(135deg,#4ade80,#16a34a)'];
+        document.getElementById('usersGrid').innerHTML = users.map((u, i) => {
+          const avatarContent = u.profile_photo 
+            ? `<img src="${u.profile_photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'; this.parentElement.textContent='${u.name ? u.name.charAt(0).toUpperCase() : 'U'}';" />`
+            : (u.name ? u.name.charAt(0).toUpperCase() : 'U');
+            
+          return `
+            <div class="user-card" style="cursor:pointer;" onclick="openUserModal('${u.name ? u.name.replace(/'/g, "\\'") : ''}', '${u.name ? u.name.charAt(0).toUpperCase() : 'U'}', '${colors[i % colors.length]}', '${u.id}', '${u.profile_photo || ''}')">
+              <div class="user-avatar" style="background:${u.profile_photo ? 'transparent' : colors[i % colors.length]};">${avatarContent}</div>
+              <div><div class="user-name">${u.name}</div><div class="user-role">${u.role || 'User'}</div></div>
+              <div class="user-status active" style="margin-top:6px;">● View Details</div>
+            </div>`;
+        }).join('');
+
+        const pendingJobs = tableData.filter(j => ['pending', 'approved', 'printing'].includes(j.status));
+        document.getElementById('activeJobsList').innerHTML = pendingJobs.slice(0, 5).map(j => {
+          let pNum = parseInt(j.pages);
+          let pText = isNaN(pNum) ? (j.pages || '0p') : (pNum + (pNum === 1 ? ' page' : ' pages'));
+          let cNum = parseInt(j.copies);
+          if (isNaN(cNum)) cNum = 1;
+          let cText = `${cNum} ${cNum === 1 ? 'copy' : 'copies'}`;
+
+          return `
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div><div style="font-size:13px;font-weight:600">${j.user}</div><div style="font-size:11px;color:var(--text-muted)">📄 ${j.file} · <span style="color:var(--cyan);font-weight:600">${pText}</span> (${cText}) · ${j.assigned_printer || 'No printer'}</div></div>
+          <span style="font-size:12px;font-weight:700;color:var(--cyan)">${j.status.replace('_', ' ')}</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden"><div style="height:100%;width:${j.status === 'approved' || j.status === 'printing' ? '80' : '30'}%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:3px"></div></div>
+      </div>`;
+        }).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:20px;">No active jobs in queue.</div>';
+
+        if (typeof pieChart !== 'undefined') {
+          pieChart.data.datasets[0].data = [stats.jobs.pending, stats.jobs.approved, stats.jobs.printed, stats.jobs.rejected];
+          pieChart.update();
+        }
+        if (typeof barChart !== 'undefined' && stats.charts) {
+          barChart.data.labels = stats.charts.daily_labels;
+          barChart.data.datasets[0].data = stats.charts.daily_jobs;
+          barChart.update();
+        }
+        if (typeof lineChart !== 'undefined' && stats.charts) {
+          if (stats.charts.monthly_labels) lineChart.data.labels = stats.charts.monthly_labels;
+          lineChart.data.datasets[0].data = stats.charts.cumulative_users;
+          lineChart.update();
+        }
+        if (typeof analyticsPie !== 'undefined') {
+          analyticsPie.data.datasets[0].data = [stats.jobs.printed, stats.jobs.approved, stats.jobs.pending, stats.jobs.rejected];
+          analyticsPie.update();
+        }
+        if (typeof analyticsBar !== 'undefined' && stats.charts) {
+          if (stats.charts.monthly_labels) analyticsBar.data.labels = stats.charts.monthly_labels;
+          analyticsBar.data.datasets[0].data = stats.charts.monthly_jobs;
+          analyticsBar.update();
+        }
+        if (typeof analyticsLine !== 'undefined' && stats.charts) {
+          if (stats.charts.monthly_labels) analyticsLine.data.labels = stats.charts.monthly_labels;
+          analyticsLine.data.datasets[0].data = stats.charts.cumulative_users;
+          analyticsLine.data.datasets[1].data = stats.charts.cumulative_jobs;
+          analyticsLine.update();
+        }
+
+        renderPrinterStatus();
+        renderQueueActivity();
+        updateHTMLNumbers(stats);
+        if (document.getElementById('page-feedback').classList.contains('active')) {
+          renderFeedbackTable();
+        }
+
+      } catch (err) {
+        console.error("Failed to load admin data", err);
+      } finally {
+        isLoadingData = false;
+      }
+    }
+
+    function renderPrinterStatus() {
+      const el = document.getElementById('printerStatus');
+      if (!el) return;
+      
+      const onlinePrinters = printerList.filter(p => !p.status || p.status.toLowerCase() !== 'offline');
+      const badge = document.getElementById('onlinePrintersBadge');
+      if (badge) {
+        badge.textContent = `${onlinePrinters.length} Online`;
+      }
+      
+      if (!onlinePrinters.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px;">No online printers available.</div>';
+        return;
+      }
+      el.innerHTML = onlinePrinters.map(p => `
+      <div style="background:rgba(255,255,255,.04);border:1px solid var(--glass-border);border-radius:14px;padding:20px;position:relative">
+        <div style="font-size:36px;margin-bottom:8px">🖨️</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:2px">${p.name}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px">${p.model || p.location || p.ip_address || 'Printer info'}</div>
+        <div style="font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(0,0,0,.2);color:#00d4ff;display:inline-block;border:1px solid rgba(0,212,255,.25)">● Online</div>
+        <div style="margin-top:14px;font-size:11px;color:var(--text-muted);line-height:1.5">
+          Active jobs: ${p.active_jobs}<br>
+          Paper: ${p.paper_available}%<br>
+          Ink: ${p.ink_level}%
+        </div>
+        ${p.alerts.length ? `<div style="margin-top:12px;font-size:11px;color:#facc15">${p.alerts.join(' · ')}</div>` : ''}
+      </div>`).join('');
+    }
+
+    function renderQueueActivity() {
+      const el = document.getElementById('queueActivityLog');
+      if (!el) return;
+      const entries = [
+        ...printerList.flatMap(p => p.alerts.map(alert => ({ text: alert, type: 'alert' }))),
+        ...feedbackItems.slice(0, 5).map(f => ({ text: `${f.user} left feedback`, type: 'feedback' }))
+      ];
+      if (!entries.length) {
+        el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px;">No recent system events.</div>';
+        return;
+      }
+      el.innerHTML = entries.slice(0, 5).map(item => `<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;color:var(--text-muted)">${item.type === 'alert' ? '⚠️ ' : '💬 '}${item.text}</div>`).join('');
+    }
+
+    function updateHTMLNumbers(stats) {
+      const cards = document.querySelectorAll('.stat-card');
+      cards.forEach(card => {
+        const labelEl = card.querySelector('.stat-label');
+        const valueEl = card.querySelector('.stat-value');
+        if (!labelEl || !valueEl) return;
+
+        const label = labelEl.textContent.trim();
+        if (label === 'Pending Requests' || label === 'Pending Jobs' || label === 'Pending') valueEl.textContent = stats.jobs.pending;
+        if (label === 'Approved') valueEl.textContent = stats.jobs.approved;
+        if (label === 'Printed Jobs' || label === 'Printed') valueEl.textContent = stats.jobs.printed;
+        if (label === 'Rejected') valueEl.textContent = stats.jobs.rejected;
+        if (label === 'Total Print Requests' || label === 'Jobs Processed') valueEl.textContent = stats.jobs.total;
+        if (label === 'Total Users') valueEl.textContent = stats.users;
+        if (label === 'Active Users') valueEl.textContent = stats.users;
+        if (label === 'Premium Users') valueEl.textContent = stats.premium_users;
+        if (label === 'New This Month') valueEl.textContent = stats.new_this_month;
+        if (label === 'Pages Printed') valueEl.textContent = stats.pages_printed;
+        if (label === 'Active / Printing') valueEl.textContent = stats.jobs.approved + (stats.jobs.printing || 0);
+        if (label === 'Printers Active') valueEl.textContent = stats.active_printers || 0;
+        if (label === 'Completed Today') valueEl.textContent = stats.completed_today;
+        if (label === 'Success Rate') valueEl.textContent = stats.success_rate + '%';
+        if (label === 'Avg. Print Time') valueEl.textContent = stats.avg_print_time + 'm';
+      });
+
+      const queueCounts = document.querySelectorAll('.queue-count');
+      if (queueCounts.length >= 3) {
+        queueCounts[0].textContent = stats.jobs.pending;
+        queueCounts[1].textContent = stats.jobs.approved;
+        queueCounts[2].textContent = stats.completed_today;
+      }
+
+      const badges = document.querySelectorAll('.panel-badge, .topbar-badge');
+      badges.forEach(el => {
+        if (el.textContent.includes('Pending')) el.textContent = stats.jobs.pending + ' Pending';
+        if (el.textContent.includes('Total') && el.textContent.includes('📄')) el.textContent = '📄 ' + stats.jobs.total + ' Total';
+        else if (el.textContent.includes('Total') && !el.textContent.includes('📄')) el.textContent = '📄 ' + stats.jobs.total + ' Total'; // Initialize
+        if (el.textContent.includes('Users')) el.textContent = '👥 ' + stats.users + ' Users';
+      });
+    }
+
+    function renderTable(id, showDate) {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      let filteredData = [...tableData];
+      if (id === 'dashboardTable') {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        filteredData = filteredData.filter(r => {
+          if (!r.created_at) return false;
+          const rDate = new Date(r.created_at);
+          return rDate >= startOfToday;
+        });
+      }
+      if (id === 'requestsTable') {
+        const filterVal = document.getElementById('dateFilter') ? document.getElementById('dateFilter').value : 'today';
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const startOfYesterday = new Date(startOfToday);
+        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+        const startOfWeek = new Date(startOfToday);
+        startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+        filteredData = filteredData.filter(r => {
+          if (!r.created_at) return filterVal === 'all';
+          const rDate = new Date(r.created_at);
+          if (filterVal === 'today') {
+            return rDate >= startOfToday;
+          } else if (filterVal === 'yesterday') {
+            return rDate >= startOfYesterday && rDate < startOfToday;
+          } else if (filterVal === 'week') {
+            return rDate >= startOfWeek;
+          }
+          return true; // 'all'
+        });
+      }
+
+      el.innerHTML = filteredData.map((r, i) => {
+        const onlinePrinters = printerList.filter(p => !p.status || p.status.toLowerCase() !== 'offline');
+        const printerOptions = onlinePrinters.length ? `
+          <select id="printerSelect-${r.id}" class="printer-select">
+            <option value="">Assign printer</option>
+            ${onlinePrinters.map(p => `<option value="${p.id}" ${p.name === r.assigned_printer ? 'selected' : ''}>${p.name}</option>`).join('')}
+          </select>
+        ` : '';
+
+        const assignedPrinter = r.assigned_printer ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Printer: ${r.assigned_printer}</div>` : '';
+        const paymentInfo = `<div style="font-size:11px;color:var(--text-muted);margin-top:4px">Payment: ${r.payment_status}</div>`;
+
+        let actionButtons = `<button class="btn-action btn-view" onclick="window.open('/view-document/${r.doc_id}', '_blank')">👁 View</button>`;
+
+        if (r.status === 'awaiting_payment') {
+          actionButtons += `<button class="btn-action btn-reject" onclick="updateStatus('${r.id}','rejected')">✕ Reject</button>`;
+        }
+        if (r.status === 'pending') {
+          actionButtons += printerOptions;
+          actionButtons += `<button class="btn-action btn-approve" onclick="approvePrint('${r.id}')">✓ Approve</button>`;
+          actionButtons += `<button class="btn-action btn-reject" onclick="updateStatus('${r.id}','rejected')">✕ Reject</button>`;
+        }
+        if (r.status === 'approved') {
+          actionButtons += `<button class="btn-action btn-approve" style="background:rgba(0,212,255,.15);color:var(--cyan);border:1px solid rgba(0,212,255,.3)" onclick="updateStatus('${r.id}', 'printing')">▶ Start Printing</button>`;
+        }
+        if (r.status === 'printing') {
+          actionButtons += `<button class="btn-action btn-approve" style="background:rgba(74,222,128,.18);color:#4ade80;border:1px solid rgba(74,222,128,.3)" onclick="updateStatus('${r.id}', 'printed')">✓ Complete</button>`;
+        }
+
+        let pNum = parseInt(r.pages);
+        let pText = isNaN(pNum) ? (r.pages || '0p') : (pNum + (pNum === 1 ? ' page' : ' pages'));
+        let cNum = parseInt(r.copies);
+        if (isNaN(cNum)) cNum = 1;
+        let cText = `${cNum} ${cNum === 1 ? 'copy' : 'copies'}`;
+
+        return `
+    <tr>
+      <td class="td-user">${r.user}</td>
+      <td class="td-file">📄 ${r.file}${assignedPrinter}${paymentInfo}</td>
+      <td class="td-pages">
+        <div style="font-weight:600;color:var(--text-primary);">${pText}</div>
+        <div style="font-size:10px;color:var(--cyan);font-weight:500;margin-top:2px;">${cText}</div>
+      </td>
+      ${showDate ? `<td style="font-size:11px;color:var(--text-muted)">${r.created_at}</td>` : ''}
+      <td>${statusMap[r.status] || statusMap['pending']}</td>
+      <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${actionButtons}</td>
+    </tr>`;
+      }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">No requests found.</td></tr>';
+    }
+
+    function filterRequests() {
+      renderTable('requestsTable', true);
+    }
+
+    function toggleCustomDropdown(e) {
+      const dropdown = document.getElementById('customDateDropdown');
+      const menu = document.getElementById('customDropdownMenu');
+      if (dropdown && menu) {
+        const isOpen = dropdown.classList.contains('open');
+        if (isOpen) {
+          dropdown.classList.remove('open');
+          menu.classList.remove('show');
+        } else {
+          dropdown.classList.add('open');
+          menu.classList.add('show');
+        }
+      }
+      if (e) e.stopPropagation();
+    }
+
+    function selectDropdownOption(el) {
+      const dropdown = document.getElementById('customDateDropdown');
+      const menu = document.getElementById('customDropdownMenu');
+      const hiddenInput = document.getElementById('dateFilter');
+      const triggerText = document.getElementById('selectedOptionText');
+
+      if (dropdown && menu && hiddenInput && triggerText) {
+        const val = el.getAttribute('data-value');
+        hiddenInput.value = val;
+        triggerText.textContent = el.textContent;
+
+        document.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('active'));
+        el.classList.add('active');
+
+        dropdown.classList.remove('open');
+        menu.classList.remove('show');
+
+        filterRequests();
+      }
+    }
+
+    // Close custom dropdowns when clicking outside
+    window.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('customDateDropdown');
+      const menu = document.getElementById('customDropdownMenu');
+      if (dropdown && menu && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        menu.classList.remove('show');
+      }
+    });
+
+    function approvePrint(jobId) {
+      let printerSelect = document.getElementById(`printerSelect-${jobId}`);
+      let printerId = printerSelect ? printerSelect.value : null;
+
+      const allSelects = document.querySelectorAll(`#printerSelect-${jobId}`);
+      if (allSelects.length > 1) {
+        allSelects.forEach(sel => {
+          if (sel.offsetWidth > 0 || sel.offsetHeight > 0) {
+            printerSelect = sel;
+            printerId = sel.value;
+          }
+        });
+      }
+
+      if (!printerId && printerList.length) {
+        alert("Please select a printer before approving.");
+        return;
+      }
+      
+      fetch('/admin/approve-print/' + jobId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ printer_id: printerId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert('Printer Error: ' + data.error);
+        } else {
+          loadAdminData(); // Refresh UI
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Failed to connect to printer API.');
+      });
+    }
+
+    async function updateStatus(id, s, assignedPrinter = null) {
+      try {
+        const body = { id: id, status: s };
+        if (assignedPrinter) body.assigned_printer = assignedPrinter;
+        await fetch('/admin/api/update-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        loadAdminData(); // Refresh UI
+      } catch (e) { console.error(e); }
+    }
+
+    function renderActs(id, list) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = list.slice(0, 5).map(a => `<div class="qa-item"><div class="qa-dot" style="background:${a.color}"></div><div class="qa-item-text"><strong>${a.user}</strong> ${a.action}</div><div class="qa-time">${a.time}</div></div>`).join('') || '<div style="color:var(--text-muted);font-size:12px;padding:20px;">No recent activity.</div>';
+    }
+
+    document.getElementById('printerStatus').innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px;">Loading printer status…</div>';
+    document.getElementById('queueActivityLog').innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:20px;">Loading activity…</div>';
+
+    loadAdminData();
+
+    // Auto-refresh dashboard data every 4 seconds for instant real-time updates
+    setInterval(() => {
+      loadAdminData(false);
+    }, 4000);
+
+    /* ══ ANALYTICS CHARTS ══ */
+    function initAnalyticsCharts() {
+      if (typeof Chart === 'undefined') {
+        console.warn('Chart.js not loaded; analytics charts will not render.');
+        return;
+      }
+
+      try {
+        analyticsBar = new Chart(document.getElementById('analyticsBar'), {
+          type: 'bar',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+              label: 'Jobs', data: [],
+              backgroundColor: ctx => { const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 220); g.addColorStop(0, 'rgba(0,212,255,.85)'); g.addColorStop(1, 'rgba(147,51,234,.3)'); return g; },
+              borderColor: '#00d4ff', borderWidth: 1, borderRadius: 6, borderSkipped: false
+            }]
+          },
+          options: { plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15,20,60,.9)' } }, scales: { x: { grid: { color: gc } }, y: { grid: { color: gc } } }, animation: { duration: 900 } }
+        });
+
+        analyticsPie = new Chart(document.getElementById('analyticsPie'), {
+          type: 'pie',
+          data: {
+            labels: ['Printed', 'Approved', 'Pending', 'Rejected'],
+            datasets: [{
+              data: [],
+              backgroundColor: ['rgba(0,212,255,.8)', 'rgba(74,222,128,.8)', 'rgba(250,204,21,.8)', 'rgba(248,113,113,.8)'],
+              borderColor: ['#00d4ff', '#4ade80', '#facc15', '#f87171'], borderWidth: 2, hoverOffset: 8
+            }]
+          },
+          options: { plugins: { legend: { labels: { color: 'rgba(232,244,253,.7)', font: { size: 11 } } }, tooltip: { backgroundColor: 'rgba(15,20,60,.9)' } }, animation: { duration: 1000 } }
+        });
+
+        analyticsLine = new Chart(document.getElementById('analyticsLine'), {
+          type: 'line',
+          data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [
+              { label: 'Users', data: [], borderColor: '#9333ea', backgroundColor: 'rgba(147,51,234,.12)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6 },
+              { label: 'Jobs', data: [], borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,.08)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6 }
+            ]
+          },
+          options: { plugins: { legend: { labels: { color: 'rgba(232,244,253,.7)' } }, tooltip: { backgroundColor: 'rgba(15,20,60,.9)' } }, scales: { x: { grid: { color: gc } }, y: { grid: { color: gc } } }, animation: { duration: 900 } }
+        });
+      } catch (chartError) {
+        console.error('Analytics chart initialization failed:', chartError);
+      }
+    }
+
+    initAnalyticsCharts();
+
+    /* ══ SETTINGS ══ */
+    function makeToggles(id, items) {
+      document.getElementById(id).innerHTML = items.map(it => `
+    <div class="setting-item">
+      <div><div class="setting-label">${it.label}</div><div class="setting-desc">${it.desc}</div></div>
+      <div class="toggle ${it.on ? 'on' : ''}" onclick="this.classList.toggle('on')"></div>
+    </div>`).join('') + `<button class="settings-btn" onclick="saveSettings(this)">Save Changes</button>`;
+    }
+
+    function saveSettings(btn) {
+      const originalText = btn.innerText;
+      btn.innerText = "Saved Successfully!";
+      btn.style.background = "#4ade80";
+      setTimeout(() => {
+        btn.innerText = originalText;
+        btn.style.background = "var(--btn-grad)";
+      }, 2000);
+    }
+    makeToggles('printerSettings', [
+      { label: 'Auto-approve jobs under 5 pages', desc: 'Skip manual review for small jobs', on: true },
+      { label: 'Double-sided printing default', desc: 'Enable duplex by default', on: false },
+      { label: 'Color printing allowed', desc: 'Permit color print requests', on: true },
+    ]);
+    makeToggles('notifSettings', [
+      { label: 'Email alerts for new jobs', desc: 'Notify admin on submission', on: true },
+      { label: 'Queue overflow warnings', desc: 'Alert when queue > 50 jobs', on: true },
+      { label: 'Printer error notifications', desc: 'Immediate hardware alerts', on: false },
+    ]);
+    makeToggles('securitySettings', [
+      { label: 'QR code authentication', desc: 'Require QR scan to print', on: true },
+      { label: 'Two-factor admin login', desc: 'Extra security for admin panel', on: false },
+      { label: 'Auto-logout after 30 min', desc: 'Session timeout for security', on: true },
+    ]);
+    document.getElementById('sysInfo').innerHTML = [
+      ['Version', 'v2.4.1'], ['Build', 'May 2026'], ['Database', 'MongoDB'],
+      ['Uptime', '14 days'], ['Storage', '68% used'], ['Last Backup', 'Today 03:00 AM']
+    ].map(([k, v]) => `
+  <div style="display:flex;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid var(--glass-border);margin-bottom:8px">
+    <span style="font-size:12px;color:var(--text-muted)">${k}</span>
+    <span style="font-size:12px;font-weight:600;color:var(--cyan)">${v}</span>
+  </div>`).join('');
+
+    /* ══ AVATAR CLICK LOGIC ══ */
+    document.querySelectorAll('.avatar').forEach(a => {
+      a.onclick = () => navigate('logout', document.querySelector('.nav-item.logout'));
+    });
+
+    /* ══ USER DETAILS MODAL LOGIC ══ */
+    function openUserModal(userName, avatarChar, avatarBg, userId, profilePhotoUrl) {
+      const modal = document.getElementById('userModal');
+      const modalName = document.getElementById('modalUserName');
+      const modalAvatar = document.getElementById('modalUserAvatar');
+      const modalJobs = document.getElementById('modalStatJobs');
+      const modalPages = document.getElementById('modalStatPages');
+      const modalTable = document.getElementById('modalUserJobsTable');
+
+      if (!modal || !modalName || !modalAvatar || !modalJobs || !modalPages || !modalTable) return;
+
+      modalName.textContent = userName;
+      if (profilePhotoUrl) {
+        modalAvatar.innerHTML = `<img src="${profilePhotoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'; this.parentElement.textContent='${avatarChar}';" />`;
+        modalAvatar.style.background = 'transparent';
+      } else {
+        modalAvatar.textContent = avatarChar;
+        modalAvatar.style.background = avatarBg;
+      }
+
+      const deleteBtn = document.getElementById('deleteUserBtn');
+      if (deleteBtn) {
+        deleteBtn.onclick = () => deleteUserConfirm(userId, userName);
+      }
+
+      // Filter print jobs for this user
+      const userPrintedJobs = tableData.filter(r => r.user === userName && r.status === 'printed');
+      
+      // Calculate totals
+      const totalJobs = userPrintedJobs.length;
+      let totalPages = 0;
+      userPrintedJobs.forEach(j => {
+        let p = parseInt(j.pages);
+        let c = parseInt(j.copies);
+        if (isNaN(p)) p = 0;
+        if (isNaN(c)) c = 1;
+        totalPages += p * c;
+      });
+
+      modalJobs.textContent = totalJobs;
+      modalPages.textContent = totalPages;
+
+      // Populate history table
+      if (userPrintedJobs.length === 0) {
+        modalTable.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">No printed documents history found.</td></tr>';
+      } else {
+        modalTable.innerHTML = userPrintedJobs.map(j => {
+          let pNum = parseInt(j.pages);
+          let pText = isNaN(pNum) ? (j.pages || '0p') : (pNum + (pNum === 1 ? ' page' : ' pages'));
+          let cNum = parseInt(j.copies);
+          if (isNaN(cNum)) cNum = 1;
+          let cText = `${cNum} ${cNum === 1 ? 'copy' : 'copies'}`;
+
+          return `
+            <tr>
+              <td style="color:var(--text-primary);font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📄 ${j.file}</td>
+              <td>
+                <div style="font-weight:600;color:var(--cyan);">${pText}</div>
+                <div style="font-size:10px;color:var(--text-muted);font-weight:500;margin-top:2px;">${cText}</div>
+              </td>
+              <td style="color:var(--text-muted);font-size:11px">${j.created_at || 'N/A'}</td>
+            </tr>`;
+        }).join('');
+      }
+
+      // Show modal
+      modal.classList.add('active');
+    }
+
+    function closeUserModal() {
+      const modal = document.getElementById('userModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    let dialogResolve = null;
+
+    function showCustomConfirm(title, message, icon = '⚠️', confirmBtnText = 'Confirm', isDanger = true) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('customDialogModal');
+        const t = document.getElementById('dialogTitle');
+        const m = document.getElementById('dialogMessage');
+        const ic = document.getElementById('dialogIcon');
+        const cancelBtn = document.getElementById('dialogCancelBtn');
+        const confirmBtn = document.getElementById('dialogConfirmBtn');
+
+        if (!modal || !t || !m || !ic || !cancelBtn || !confirmBtn) {
+          resolve(confirm(message)); // Fallback
+          return;
+        }
+
+        t.textContent = title;
+        m.innerHTML = message.replace(/\n/g, '<br>');
+        ic.textContent = icon;
+        cancelBtn.style.display = 'block';
+        cancelBtn.textContent = 'Cancel';
+        confirmBtn.textContent = confirmBtnText;
+
+        if (isDanger) {
+          confirmBtn.className = 'btn-action btn-reject';
+          confirmBtn.style.background = 'rgba(248, 113, 113, 0.15)';
+          confirmBtn.style.border = '1px solid rgba(248, 113, 113, 0.3)';
+          confirmBtn.style.color = '#f87171';
+          ic.style.filter = 'drop-shadow(0 0 10px rgba(248, 113, 113, 0.4))';
+        } else {
+          confirmBtn.className = 'btn-action btn-approve';
+          confirmBtn.style.background = 'linear-gradient(90deg, rgba(0, 212, 255, 0.8), rgba(147, 51, 234, 0.8))';
+          confirmBtn.style.border = 'none';
+          confirmBtn.style.color = '#fff';
+          ic.style.filter = 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.4))';
+        }
+
+        dialogResolve = resolve;
+        modal.classList.add('active');
+      });
+    }
+
+    function showCustomAlert(title, message, icon = 'ℹ️', isSuccess = false) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('customDialogModal');
+        const t = document.getElementById('dialogTitle');
+        const m = document.getElementById('dialogMessage');
+        const ic = document.getElementById('dialogIcon');
+        const cancelBtn = document.getElementById('dialogCancelBtn');
+        const confirmBtn = document.getElementById('dialogConfirmBtn');
+
+        if (!modal || !t || !m || !ic || !cancelBtn || !confirmBtn) {
+          alert(message); // Fallback
+          resolve();
+          return;
+        }
+
+        t.textContent = title;
+        m.innerHTML = message.replace(/\n/g, '<br>');
+        ic.textContent = icon;
+        cancelBtn.style.display = 'none'; // No cancel button for alerts
+        confirmBtn.textContent = 'OK';
+
+        if (isSuccess) {
+          confirmBtn.className = 'btn-action btn-approve';
+          confirmBtn.style.background = 'linear-gradient(90deg, rgba(0, 212, 255, 0.8), rgba(147, 51, 234, 0.8))';
+          confirmBtn.style.border = 'none';
+          confirmBtn.style.color = '#fff';
+          ic.style.filter = 'drop-shadow(0 0 10px rgba(74, 222, 128, 0.4))';
+        } else {
+          confirmBtn.className = 'btn-action btn-view';
+          confirmBtn.style.background = 'rgba(255, 255, 255, 0.08)';
+          confirmBtn.style.border = '1px solid var(--glass-border)';
+          confirmBtn.style.color = 'var(--text-primary)';
+          ic.style.filter = 'drop-shadow(0 0 10px rgba(0, 212, 255, 0.2))';
+        }
+
+        dialogResolve = resolve;
+        modal.classList.add('active');
+      });
+    }
+
+    function closeCustomDialog(result) {
+      const modal = document.getElementById('customDialogModal');
+      if (modal) modal.classList.remove('active');
+      if (dialogResolve) {
+        const resolve = dialogResolve;
+        dialogResolve = null;
+        resolve(result);
+      }
+    }
+
+    async function deleteUserConfirm(userId, userName) {
+      if (!userId) {
+        showCustomAlert("Invalid Action", "User ID is missing or invalid.", "❌");
+        return;
+      }
+
+      const firstConfirm = await showCustomConfirm(
+        "Delete User Account",
+        `Are you absolutely sure you want to permanently delete user "${userName}"?\n\nThis will physically delete all their uploaded documents/files and permanently wipe all their print histories, payments, and feedback records from the system.\n\nThis action is IRREVERSIBLE.`,
+        "🗑️",
+        "Permanently Delete",
+        true
+      );
+
+      if (firstConfirm) {
+        const secondConfirm = await showCustomConfirm(
+          "Final Confirmation Required",
+          `FINAL WARNING:\n\nAre you sure you want to delete user "${userName}" forever?\nAll associated data will be deleted instantly.`,
+          "⚠️",
+          "Yes, Delete Forever",
+          true
+        );
+
+        if (secondConfirm) {
+          try {
+            const res = await fetch('/admin/api/delete-user/' + userId, { method: 'DELETE' });
+            
+            if (res.status === 401) {
+              throw new Error("Unauthorized! Only logged-in administrators can perform this action.");
+            }
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.error || `Server returned error status ${res.status}`);
+            }
+            
+            const data = await res.json();
+            await showCustomAlert(
+              "Account Deleted",
+              data.message || `User "${userName}" has been completely deleted.`,
+              "✅",
+              true
+            );
+            
+            closeUserModal();
+            loadAdminData(true);
+          } catch (err) {
+            console.error(err);
+            showCustomAlert("Deletion Failed", err.message, "❌");
+          }
+        }
+      }
+    }
+
+    function renderFeedbackTable() {
+      const el = document.getElementById('feedbackTable');
+      if (!el) return;
+
+      const badge = document.getElementById('feedbackCountBadge');
+      if (badge) {
+        badge.textContent = `💬 ${feedbackItems.length} Feedbacks`;
+      }
+
+      if (!feedbackItems.length) {
+        el.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">No feedback items found.</td>
+          </tr>`;
+        return;
+      }
+
+      el.innerHTML = feedbackItems.map((f, i) => {
+        return `
+          <tr>
+            <td class="td-user">${escHtml(f.user)}</td>
+            <td>${formatRating(f.rating)}</td>
+            <td style="color:var(--text-primary);max-width:300px;word-wrap:break-word;white-space:normal;">${escHtml(f.feedback)}</td>
+            <td class="td-pages">${escHtml(f.created_at)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function formatRating(ratingStr) {
+      if (!ratingStr) return '<span style="color:var(--text-muted)">N/A</span>';
+
+      if (ratingStr.includes('|')) {
+        const parts = ratingStr.split('|').map(p => p.trim());
+        let badges = '';
+
+        // Q1: Process
+        if (parts[0] === 'Yes, it was') {
+          badges += `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.3);margin-right:6px;margin-bottom:4px;white-space:nowrap;">🟢 Smooth</span>`;
+        } else if (parts[0] === "No, it wasn't") {
+          badges += `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);margin-right:6px;margin-bottom:4px;white-space:nowrap;">🔴 Issues</span>`;
+        }
+
+        // Q2: Recommends
+        if (parts[1] === 'Definitely') {
+          badges += `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(147,51,234,.12);color:#c084fc;border:1px solid rgba(147,51,234,.3);margin-right:6px;margin-bottom:4px;white-space:nowrap;">🟣 Recommends</span>`;
+        } else if (parts[1] === 'Probably not') {
+          badges += `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(248,113,113,.12);color:#f87171;border:1px solid rgba(248,113,113,.3);margin-right:6px;margin-bottom:4px;white-space:nowrap;">🔴 Avoid</span>`;
+        }
+
+        // Q3: Quality
+        if (parts[2] === 'Met expectations') {
+          badges += `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(0,212,255,.12);color:var(--cyan);border:1px solid rgba(0,212,255,.25);margin-bottom:4px;white-space:nowrap;">🔵 Good Quality</span>`;
+        } else if (parts[2] === 'Could be better') {
+          badges += `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(250,204,21,.12);color:var(--gold);border:1px solid rgba(250,204,21,.25);margin-bottom:4px;white-space:nowrap;">🟡 Subpar</span>`;
+        }
+
+        return badges ? `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">${badges}</div>` : `<span style="color:var(--text-muted);font-size:11px;">${escHtml(ratingStr)}</span>`;
+      }
+
+      let stars = '';
+      const ratingVal = parseInt(ratingStr) || 0;
+      for (let s = 1; s <= 5; s++) {
+        if (s <= ratingVal) {
+          stars += '⭐';
+        } else {
+          stars += '☆';
+        }
+      }
+      return `<span style="color:var(--gold);font-size:13px;">${stars}</span>`;
+    }
+
+    function escHtml(s) {
+      if (s == null) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+  </script>
+
+  <!-- ══════════════ USER DETAILS MODAL ══════════════ -->
+  <div class="user-modal-overlay" id="userModal" onclick="closeUserModal()">
+    <div class="user-modal-box" onclick="event.stopPropagation()">
+      <div class="user-modal-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="user-modal-avatar" id="modalUserAvatar">U</div>
+          <div>
+            <h2 id="modalUserName" style="font-size:18px;font-weight:700">User Name</h2>
+            <p id="modalUserSub" style="font-size:11px;color:var(--text-muted)">User Profile Details</p>
+          </div>
+        </div>
+        <button class="user-modal-close" onclick="closeUserModal()">✕</button>
+      </div>
+      <div class="user-modal-body">
+        <div class="user-modal-stats">
+          <div class="user-modal-stat-card">
+            <span style="font-size:20px">📄</span>
+            <div>
+              <strong id="modalStatJobs">0</strong>
+              <small>Printed Docs</small>
+            </div>
+          </div>
+          <div class="user-modal-stat-card">
+            <span style="font-size:20px">📋</span>
+            <div>
+              <strong id="modalStatPages">0</strong>
+              <small>Total Pages</small>
+            </div>
+          </div>
+        </div>
+        <h3 style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin:24px 0 12px;text-align:left">Printed Documents History</h3>
+        <div class="user-modal-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="font-size:10px;text-align:left;padding-left:12px">Document</th>
+                <th style="font-size:10px;text-align:left">Pages</th>
+                <th style="font-size:10px;text-align:left">Date</th>
+              </tr>
+            </thead>
+            <tbody id="modalUserJobsTable">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--glass-border);display:flex;justify-content:flex-end;">
+          <button id="deleteUserBtn" class="btn-action btn-reject" style="padding:10px 20px;font-size:12px;font-weight:700;border-radius:10px;display:flex;align-items:center;gap:6px;cursor:pointer;">🗑️ Delete User Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ══════════════ CUSTOM CONFIRM/ALERT DIALOG (GLASSMORPHIC) ══════════════ -->
+  <div class="user-modal-overlay" id="customDialogModal" onclick="closeCustomDialog(false)">
+    <div class="user-modal-box" onclick="event.stopPropagation()" style="max-width: 420px; text-align: center; border-color: rgba(0, 212, 255, 0.2); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 50px rgba(0, 212, 255, 0.2);">
+      <div style="font-size: 48px; margin-bottom: 16px; filter: drop-shadow(0 0 10px rgba(0,212,255,0.4));" id="dialogIcon">⚠️</div>
+      <h2 id="dialogTitle" style="font-size: 20px; font-weight: 800; margin-bottom: 12px; background: var(--btn-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: inherit; text-transform: uppercase; letter-spacing: 0.5px;">Confirm Action</h2>
+      <p id="dialogMessage" style="font-size: 13.5px; color: var(--text-primary); opacity: 0.95; line-height: 1.6; margin-bottom: 24px; text-align: center; font-weight: 500;"></p>
+      
+      <div style="display: flex; gap: 14px; justify-content: center; width: 100%;">
+        <button id="dialogCancelBtn" class="btn-action btn-view" onclick="closeCustomDialog(false)" style="padding: 10px 24px; font-size: 12.5px; font-weight: 700; border-radius: 10px; cursor: pointer; flex: 1; min-height: 40px;">Cancel</button>
+        <button id="dialogConfirmBtn" class="btn-action btn-reject" onclick="closeCustomDialog(true)" style="padding: 10px 24px; font-size: 12.5px; font-weight: 700; border-radius: 10px; cursor: pointer; flex: 1; min-height: 40px; background: rgba(248, 113, 113, 0.15); border: 1px solid rgba(248, 113, 113, 0.3); color: #f87171;">Delete</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

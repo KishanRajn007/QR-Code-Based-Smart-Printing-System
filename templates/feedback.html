@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at top, #1d2450 0%, #0e1838 45%, #08122c 100%);
+            overflow-x: hidden;
+            padding: 30px 16px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 255, 255, 0.08);
+            filter: blur(120px);
+            border-radius: 50%;
+            top: -120px;
+            right: -120px;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            width: 350px;
+            height: 350px;
+            background: rgba(0, 100, 255, 0.06);
+            filter: blur(100px);
+            border-radius: 50%;
+            bottom: -80px;
+            left: -80px;
+            pointer-events: none;
+        }
+
+        /* Main Card */
+        .card {
+            width: 400px;
+            background: #202947;
+            border-radius: 18px;
+            padding: 30px 26px 34px;
+            color: white;
+            position: relative;
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            animation: fadeUp 0.5s ease both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Badge */
+        .badge {
+            width: max-content;
+            margin: 0 auto 22px;
+            padding: 7px 18px;
+            border-radius: 30px;
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            color: #3ed7ff;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        /* Heading */
+        .heading {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .sub {
+            text-align: center;
+            font-size: 12px;
+            color: #9ca7c3;
+            margin-bottom: 28px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.07);
+            margin: 22px 0;
+        }
+
+        /* Question Block */
+        .q-block {
+            margin-bottom: 22px;
+        }
+
+        .q-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #c8d0e7;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .q-label .q-num {
+            min-width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(0, 195, 255, 0.15);
+            border: 1px solid rgba(0, 195, 255, 0.35);
+            color: #3ed7ff;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* Option Buttons (choice) */
+        .options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .opt-btn {
+            flex: 1;
+            padding: 11px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #9ca7c3;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+
+        .opt-btn:hover {
+            background: rgba(0, 195, 255, 0.08);
+            border-color: rgba(0, 195, 255, 0.35);
+            color: #d0eeff;
+        }
+
+        .opt-btn.selected {
+            background: linear-gradient(135deg, rgba(0, 195, 255, 0.2), rgba(0, 247, 255, 0.1));
+            border-color: #00c3ff;
+            color: #3ed7ff;
+            box-shadow: 0 0 14px rgba(0, 195, 255, 0.18);
+        }
+
+        /* Textarea */
+        .textarea-wrap {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 13px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: white;
+            font-size: 13px;
+            
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.22s;
+            line-height: 1.6;
+        }
+
+        textarea::placeholder {
+            color: #5a6480;
+        }
+
+        textarea:focus {
+            border-color: rgba(0, 195, 255, 0.45);
+            background: rgba(0, 195, 255, 0.04);
+        }
+
+        .char-count {
+            position: absolute;
+            bottom: 10px;
+            right: 12px;
+            font-size: 10px;
+            color: #5a6480;
+            pointer-events: none;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            background: linear-gradient(90deg, #00c3ff, #00f7ff);
+            color: #06142f;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 18px rgba(0, 247, 255, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        /* ── MODAL OVERLAY ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(6px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: fadeBg 0.3s ease both;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeBg {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal {
+            width: 340px;
+            background: #1a2240;
+            border-radius: 18px;
+            padding: 28px 24px 26px;
+            color: white;
+            text-align: center;
+            position: relative;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 80, 80, 0.25);
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.85);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 80, 80, 0.12);
+            border: 1px solid rgba(255, 80, 80, 0.35);
+            color: #ff6b6b;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .modal-body {
+            font-size: 13px;
+            color: #9ca7c3;
+            line-height: 1.7;
+            margin-bottom: 22px;
+        }
+
+        .modal-body strong {
+            color: #ff9e9e;
+        }
+
+        .modal-steps {
+            background: rgba(255, 80, 80, 0.07);
+            border: 1px solid rgba(255, 80, 80, 0.18);
+            border-radius: 10px;
+            padding: 12px 14px;
+            text-align: left;
+            font-size: 12px;
+            color: #b0bcd8;
+            margin-bottom: 22px;
+            line-height: 1.9;
+        }
+
+        .modal-steps i {
+            color: #ff6b6b;
+            margin-right: 6px;
+            width: 14px;
+        }
+
+        .home-btn-modal {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            background: linear-gradient(90deg, #00c3ff, #00f7ff);
+            color: #06142f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .home-btn-modal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 18px rgba(0, 247, 255, 0.3);
+        }
+
+        /* Error shake */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-6px);
+            }
+
+            40% {
+                transform: translateX(6px);
+            }
+
+            60% {
+                transform: translateX(-4px);
+            }
+
+            80% {
+                transform: translateX(4px);
+            }
+        }
+
+        .shake {
+            animation: shake 0.4s ease;
+        }
+
+        .error-msg {
+            font-size: 11px;
+            color: #ff6b6b;
+            margin-top: 8px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── FEEDBACK CARD ── -->
+    <div class="card" id="feedbackCard">
+
+        <div class="badge">
+            <i class="fa-solid fa-comment-dots"></i>
+            Share Your Experience
+        </div>
+
+        <div class="heading">Your Feedback</div>
+        <div class="sub">Help us improve — it takes less than a minute</div>
+
+        <!-- Q1 -->
+        <div class="q-block" id="q1-block">
+            <div class="q-label">
+                <span class="q-num">1</span>
+                <span>Was the printing process smooth and hassle-free?</span>
+            </div>
+            <div class="options">
+                <button class="opt-btn" onclick="selectOption(this, 'q1')">
+                    <i class="fa-solid fa-circle-check"></i> Yes, it was
+                </button>
+                <button class="opt-btn" onclick="selectOption(this, 'q1')">
+                    <i class="fa-solid fa-circle-xmark"></i> No, it wasn't
+                </button>
+            </div>
+            <div class="error-msg" id="q1-err">
+                <i class="fa-solid fa-triangle-exclamation"></i> Please select an option.
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Q2 -->
+        <div class="q-block" id="q2-block">
+            <div class="q-label">
+                <span class="q-num">2</span>
+                <span>Would you recommend this service to others?</span>
+            </div>
+            <div class="options">
+                <button class="opt-btn" onclick="selectOption(this, 'q2')">
+                    <i class="fa-solid fa-thumbs-up"></i> Definitely
+                </button>
+                <button class="opt-btn" onclick="selectOption(this, 'q2')">
+                    <i class="fa-solid fa-thumbs-down"></i> Probably not
+                </button>
+            </div>
+            <div class="error-msg" id="q2-err">
+                <i class="fa-solid fa-triangle-exclamation"></i> Please select an option.
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Q3 -->
+        <div class="q-block" id="q3-block">
+            <div class="q-label">
+                <span class="q-num">3</span>
+                <span>Did the printed pass meet your expectations?</span>
+            </div>
+            <div class="options">
+                <button class="opt-btn" onclick="selectOption(this, 'q3')">
+                    <i class="fa-solid fa-star"></i> Met expectations
+                </button>
+                <button class="opt-btn" onclick="selectOption(this, 'q3')">
+                    <i class="fa-solid fa-star-half-stroke"></i> Could be better
+                </button>
+            </div>
+            <div class="error-msg" id="q3-err">
+                <i class="fa-solid fa-triangle-exclamation"></i> Please select an option.
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Q4 Descriptive -->
+        <div class="q-block" id="q4-block">
+            <div class="q-label">
+                <span class="q-num">4</span>
+                <span>Tell us more — any suggestions or comments?</span>
+            </div>
+            <div class="textarea-wrap">
+                <textarea id="descriptive" placeholder="Share your thoughts, suggestions, or anything we should know…" maxlength="300" oninput="updateChar(this)"></textarea>
+                <span class="char-count" id="charCount">0 / 300</span>
+            </div>
+            <div class="error-msg" id="q4-err">
+                <i class="fa-solid fa-triangle-exclamation"></i> Please write at least a few words.
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="submit-btn" onclick="submitFeedback()">
+            <i class="fa-solid fa-paper-plane"></i>
+            Submit Feedback
+        </button>
+
+    </div>
+
+
+    <!-- ── MODAL ── -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+
+            <div class="modal-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+
+            <div class="modal-title">Security Reminder</div>
+
+            <div class="modal-body">
+                Thank you for your feedback! Before you leave, please note:<br><br>
+                If you uploaded or accessed any <strong>confidential files</strong> during this session, make sure to
+                delete them from your browser history and downloads.
+            </div>
+
+            <div class="modal-steps">
+                <div><i class="fa-solid fa-trash-can"></i> Clear downloaded files from your device</div>
+                <div><i class="fa-solid fa-clock-rotate-left"></i> Delete this session from browser history</div>
+                <div><i class="fa-solid fa-folder-open"></i> Remove any saved copies of your pass</div>
+            </div>
+
+            <button class="home-btn-modal" onclick="goHome()">
+                <i class="fa-solid fa-house"></i>
+                Got it — Back to Home
+            </button>
+
+        </div>
+    </div>
+
+
+    <script>
+
+        // ── State ──
+        const answers = { q1: null, q2: null, q3: null };
+
+        function selectOption(btn, key) {
+            const parent = btn.closest('.options');
+            parent.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            answers[key] = btn.textContent.trim();
+            document.getElementById(key + '-err').style.display = 'none';
+        }
+
+        function updateChar(el) {
+            document.getElementById('charCount').textContent = el.value.length + ' / 300';
+        }
+
+        async function submitFeedback() {
+            let valid = true;
+
+            // Validate MCQ questions
+            ['q1', 'q2', 'q3'].forEach(key => {
+                if (!answers[key]) {
+                    const err = document.getElementById(key + '-err');
+                    const block = document.getElementById(key + '-block');
+                    err.style.display = 'block';
+                    block.classList.remove('shake');
+                    void block.offsetWidth; // reflow for re-trigger
+                    block.classList.add('shake');
+                    valid = false;
+                }
+            });
+
+            // Descriptive feedback is optional
+            const desc = document.getElementById('descriptive').value.trim();
+
+            if (!valid) return;
+
+            const payload = {
+                answers,
+                feedback: desc,
+                rating: `${answers.q1 || ''} | ${answers.q2 || ''} | ${answers.q3 || ''}`
+            };
+
+            try {
+                const res = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || 'Feedback submission failed');
+                }
+                document.getElementById('modalOverlay').classList.add('active');
+            } catch (err) {
+                alert(err.message || 'Unable to submit feedback at the moment.');
+            }
+        }
+
+        function goHome() {
+            window.location.href = '/waiting' + window.location.search;
+        }
+
+    </script>
+
+</body>
+
+</html>

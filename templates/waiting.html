@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printing Status UI</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background:
+                radial-gradient(circle at top, #1d2450 0%, #0e1838 45%, #08122c 100%);
+            overflow: hidden;
+        }
+
+        /* Glow Effect */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 255, 255, 0.08);
+            filter: blur(120px);
+            border-radius: 50%;
+            top: -120px;
+            right: -120px;
+        }
+
+        /* Main Card */
+        .card {
+            width: 360px;
+            background: #202947;
+            border-radius: 18px;
+            padding: 28px 24px;
+            color: white;
+            position: relative;
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Badge */
+        .badge {
+            width: max-content;
+            margin: auto;
+            padding: 7px 18px;
+            border-radius: 30px;
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            color: #3ed7ff;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Signal Animation */
+        .signal {
+            margin: 22px auto 10px;
+            width: 60px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .signal span {
+            display: block;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-top: none;
+            border-radius: 0 0 50px 50px;
+        }
+
+        .signal span:nth-child(1) {
+            width: 8px;
+            height: 4px;
+        }
+
+        .signal span:nth-child(2) {
+            width: 16px;
+            height: 8px;
+        }
+
+        .signal span:nth-child(3) {
+            width: 24px;
+            height: 12px;
+        }
+
+        .signal span:nth-child(4) {
+            width: 32px;
+            height: 16px;
+        }
+
+        /* Printer */
+        .printer-box {
+            width: 105px;
+            height: 58px;
+            margin: 0 auto;
+            background: #4b5267;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.15);
+        }
+
+        .paper {
+            position: absolute;
+            width: 48px;
+            height: 16px;
+            background: white;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -10px;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .paper::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            top: 5px;
+            height: 2px;
+            background: #888;
+            box-shadow: 0 4px 0 #888;
+        }
+
+        .printer-top {
+            position: absolute;
+            width: 64px;
+            height: 12px;
+            background: #2f3444;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -3px;
+            border-radius: 4px;
+        }
+
+        .dot {
+            position: absolute;
+            bottom: 10px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        .dot1 {
+            left: 40px;
+            background: #00f7ff;
+        }
+
+        .dot2 {
+            left: 49px;
+            background: #7eff00;
+            animation-delay: 0.3s;
+        }
+
+        .dot3 {
+            left: 58px;
+            background: #ffb300;
+            animation-delay: 0.6s;
+        }
+
+        .gear {
+            position: absolute;
+            color: white;
+            font-size: 10px;
+            top: 22px;
+        }
+
+        .left {
+            left: 14px;
+        }
+
+        .right {
+            right: 14px;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Text */
+        .title {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #9ca7c3;
+        }
+
+        /* Buttons */
+        .button-group {
+            margin-top: 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        /* Feedback Button */
+        .feedback-btn {
+            background: linear-gradient(90deg, #00c3ff, #00f7ff);
+            color: #06142f;
+        }
+
+        .feedback-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 18px rgba(0, 247, 255, 0.3);
+        }
+
+        /* Home Button */
+        .home-btn {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .home-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        /* Wrapper */
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Progress Card */
+        .progress-card {
+            width: 360px;
+            background: #202947;
+            border-radius: 18px;
+            padding: 24px;
+            color: white;
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .queue-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: rgba(255, 179, 0, 0.15);
+            color: #ffb300;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .progress-bar-wrap {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00c3ff, #00f7ff);
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #9ca7c3;
+        }
+
+        .status-text {
+            color: #3ed7ff;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        /* Success State */
+        .progress-card.success .progress-bar {
+            background: linear-gradient(90deg, #00ff87, #60efff);
+        }
+        .progress-card.success .queue-badge {
+            background: rgba(0, 255, 135, 0.15);
+            color: #00ff87;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrapper">
+    <div class="card">
+
+        <!-- Top Badge -->
+        <div class="badge">
+            <i class="fa-solid fa-circle-check"></i>
+            Payment Confirmed
+        </div>
+
+        <!-- Signal Animation -->
+        <div class="signal">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <!-- Printer -->
+        <div class="printer-box">
+
+            <div class="paper"></div>
+            <div class="printer-top"></div>
+
+            <i class="fa-solid fa-gear gear left"></i>
+            <i class="fa-solid fa-gear gear right"></i>
+
+            <div class="dot dot1"></div>
+            <div class="dot dot2"></div>
+            <div class="dot dot3"></div>
+
+        </div>
+
+        <!-- Text -->
+        <div class="title">
+            Printing Your Pass...
+        </div>
+
+        <div class="subtitle">
+            Please wait while we prepare your document
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+
+            <button class="btn feedback-btn" onclick="window.location.href='/feedback' + window.location.search">
+                <i class="fa-solid fa-star"></i>
+                Give Feedback
+            </button>
+
+            <button class="btn home-btn" onclick="window.location.href='/dashboard'">
+                <i class="fa-solid fa-house"></i>
+                Back To Home Page
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- New Progress Container -->
+    <div class="progress-card" id="progressContainer">
+        <div class="progress-header">
+            <div class="progress-title">Live Printing Progress</div>
+            <div class="queue-badge" id="queueBadge">Queue: Calculating...</div>
+        </div>
+        
+        <div class="progress-stats" style="margin-top: 5px;">
+            <span class="status-text" id="statusText">Connecting...</span>
+            <span><span id="currentPage">0</span> / <span id="totalPages">0</span> Pages</span>
+        </div>
+
+        <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="progress-stats">
+            <span>Completion</span>
+            <span id="percentageText">0%</span>
+        </div>
+    </div>
+    
+    </div>
+
+    <script>
+        // Automatically poll backend for status
+        const params = new URLSearchParams(window.location.search);
+        const jobId = params.get('job_id');
+
+        function checkStatus() {
+            if (!jobId) return;
+            fetch('/api/job-status/' + jobId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'rejected') {
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+
+                    // Update UI elements
+                    document.getElementById('statusText').innerText = data.status.replace('_', ' ');
+                    document.getElementById('currentPage').innerText = data.current_page || 0;
+                    document.getElementById('totalPages').innerText = data.total_pages || 0;
+                    document.getElementById('progressBar').style.width = (data.percentage || 0) + '%';
+                    document.getElementById('percentageText').innerText = (data.percentage || 0) + '%';
+                    
+                    if (data.status === 'pending' || data.status === 'approved') {
+                        document.getElementById('queueBadge').innerText = 'Queue Pos: ' + (data.queue_position + 1);
+                        document.getElementById('queueBadge').innerHTML += ' <i class="fa-solid fa-hourglass-half"></i>';
+                    } else if (data.status === 'printing') {
+                        document.getElementById('queueBadge').innerText = 'Printing Now';
+                        document.getElementById('queueBadge').style.background = 'rgba(0, 195, 255, 0.15)';
+                        document.getElementById('queueBadge').style.color = '#00c3ff';
+                    } else if (data.status === 'printed') {
+                        document.getElementById('queueBadge').innerHTML = 'Done <i class="fa-solid fa-check"></i>';
+                        document.getElementById('progressContainer').classList.add('success');
+                        document.getElementById('statusText').innerText = 'Completed';
+                        document.getElementById('statusText').style.color = '#00ff87';
+                        
+                        if (data.current_page === data.total_pages) {
+                            setTimeout(() => { window.location.href = '/dashboard'; }, 3000);
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching status:', error));
+        }
+
+        setInterval(checkStatus, 3000);
+    </script>
+</body>
+
+</html>

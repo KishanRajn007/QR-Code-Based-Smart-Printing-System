@@ -1,0 +1,17 @@
+# Environment
+.env
+
+# Uploaded files
+static/uploads/
+
+# Python
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Backup/Test Files
+app_backup.py
+test_db.py
+update_fonts.py

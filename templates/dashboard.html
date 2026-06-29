@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}">
+
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QR Smart Print — User Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-deep:     #050507;
+  --gold:        #f4c94e;
+  --gold-light:  #fde68a;
+  --gold-dim:    #b8922a;
+  --gold-glow:   rgba(244,201,78,0.18);
+  --gold-glow2:  rgba(244,201,78,0.06);
+  --purple:      #7c3aed;
+  --purple-mid:  #4c1d95;
+  --glass:       rgba(255,255,255,0.04);
+  --glass-2:     rgba(255,255,255,0.07);
+  --border:      rgba(244,201,78,0.12);
+  --border-2:    rgba(244,201,78,0.22);
+  --text-pri:    #f0e6ff;
+  --text-sec:    rgba(240,230,255,0.55);
+  --text-dim:    rgba(240,230,255,0.30);
+  --sidebar-w:   262px;
+  --r:           16px;
+  --r-sm:        10px;
+  --shadow-gold: 0 0 28px rgba(244,201,78,0.18), 0 0 60px rgba(244,201,78,0.06);
+  --shadow-card: 0 8px 40px rgba(0,0,0,0.55);
+}
+
+html, body {
+  height: 100%; 
+  background: var(--bg-deep); color: var(--text-pri); overflow: hidden;
+}
+
+/* ── Animated bg ── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%,  rgba(76,29,149,.35)  0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 100%, rgba(124,58,237,.22) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,  rgba(244,201,78,.04) 0%, transparent 70%),
+    linear-gradient(180deg, #050507 0%, #0a0812 40%, #0e0b1a 100%);
+  animation: meshShift 18s ease-in-out infinite alternate;
+}
+@keyframes meshShift { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(10deg)} }
+
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+.app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  display: flex; flex-direction: column;
+  background: rgba(8,5,18,.88);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border-right: 1px solid var(--border);
+  padding-bottom: 24px; position: relative; overflow: hidden;
+  animation: sideSlide .5s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes sideSlide { from{transform:translateX(-100%);opacity:0} to{transform:none;opacity:1} }
+
+.sidebar::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+  box-shadow: 0 0 20px rgba(244,201,78,.6);
+}
+.sidebar::after {
+  content: ''; position: absolute; bottom: 0; left: 0;
+  width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,58,237,.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Brand */
+.brand {
+  display: flex; align-items: center; gap: 12px;
+  padding: 26px 24px; border-bottom: 1px solid var(--border);
+}
+.brand-logo {
+  width: 42px; height: 42px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+  border-radius: 10px; display: grid; place-items: center; font-size: 20px;
+  box-shadow: 0 0 20px rgba(244,201,78,.4), 0 4px 12px rgba(0,0,0,.4);
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%,100%{box-shadow:0 0 20px rgba(244,201,78,.4),0 4px 12px rgba(0,0,0,.4)}
+  50%{box-shadow:0 0 36px rgba(244,201,78,.7),0 4px 16px rgba(0,0,0,.5)}
+}
+.brand-name {
+   font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.brand-sub { font-size: 11px; color: var(--text-dim); letter-spacing: .5px; margin-top: 2px; }
+
+/* Sidebar user */
+.sidebar-user {
+  margin: 14px 14px 6px; padding: 11px 13px;
+  background: var(--glass); border: 1px solid var(--border);
+  border-radius: var(--r-sm); display: flex; align-items: center; gap: 10px;
+}
+.sidebar-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--purple), var(--gold-dim));
+  display: grid; place-items: center;
+   font-size: 13px; font-weight: 800; color: #fff;
+  box-shadow: 0 0 12px rgba(244,201,78,.25);
+  overflow: hidden;
+}
+.sidebar-user-name { font-size: 14px; font-weight: 600; color: var(--text-pri); }
+.sidebar-user-role { font-size: 11px; color: var(--gold-dim); letter-spacing: .5px;  }
+
+/* Nav */
+.nav { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; flex: 1; }
+.nav-section-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--text-dim); padding: 8px 12px 4px; 
+}
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: var(--r-sm); cursor: pointer;
+  position: relative; overflow: hidden;
+  transition: all .22s cubic-bezier(.22,1,.36,1);
+  color: var(--text-sec); font-size: 14px; font-weight: 500;
+  border: 1px solid transparent; user-select: none;
+   letter-spacing: .4px;
+}
+.nav-item::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(244,201,78,.06), transparent);
+  opacity: 0; transition: opacity .22s;
+}
+.nav-item:hover { color: var(--gold-light); transform: translateX(4px); border-color: var(--border); }
+.nav-item:hover::before { opacity: 1; }
+.nav-item.active {
+  color: var(--gold);
+  background: linear-gradient(90deg, rgba(244,201,78,.10), rgba(244,201,78,.03));
+  border-color: var(--border-2);
+  box-shadow: 0 0 16px rgba(244,201,78,.08), inset 0 0 16px rgba(244,201,78,.03);
+}
+.nav-item.active::before { opacity: 1; }
+.nav-item.active::after {
+  content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+  box-shadow: 0 0 10px rgba(244,201,78,.7);
+}
+.nav-icon { font-size: 17px; flex-shrink: 0; width: 22px; text-align: center; }
+.nav-badge {
+  margin-left: auto; font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px;
+  background: rgba(244,201,78,.15); color: var(--gold);
+  border: 1px solid rgba(244,201,78,.25);
+}
+.nav-item.logout { color: rgba(252,100,100,.65); }
+.nav-item.logout:hover { color:#ff7070; border-color:rgba(255,100,100,.2); background:rgba(255,80,80,.05); }
+
+.sidebar-footer {
+  margin: 0 14px; padding: 11px 13px;
+  background: var(--glass); border: 1px solid var(--border);
+  border-radius: var(--r-sm); font-size: 11px; color: var(--text-dim);
+   letter-spacing: .5px; text-align: center;
+}
+.sidebar-footer span { color: var(--gold-dim); }
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 66px; flex-shrink: 0;
+  background: rgba(8,5,18,.75);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border); position: relative; z-index: 5;
+}
+.header::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(244,201,78,.15), transparent);
+}
+.header-left { display: flex; align-items: center; gap: 14px; }
+.header-page-label {
+   font-size: 12px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--gold); opacity: .7;
+}
+.header-sep { color: var(--border-2); font-size: 18px; }
+.header-title {  font-size: 15px; font-weight: 700; color: var(--gold-light); letter-spacing: 1px; }
+.header-right { display: flex; align-items: center; gap: 14px; }
+.header-notif {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: var(--glass); border: 1px solid var(--border);
+  display: grid; place-items: center; cursor: pointer; font-size: 16px;
+  transition: all .2s; position: relative;
+}
+.header-notif:hover { border-color: var(--border-2); box-shadow: var(--shadow-gold); }
+.notif-dot {
+  position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gold); border: 1.5px solid var(--bg-deep);
+  animation: notifBlink 2s ease-in-out infinite;
+}
+@keyframes notifBlink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.notif-wrapper { position: relative; }
+.notif-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0; width: 320px;
+  background: rgba(14,9,30,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-2); border-radius: var(--r);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(244,201,78,0.1);
+  display: none; flex-direction: column; z-index: 100;
+  animation: dropIn .2s cubic-bezier(.22,1,.36,1) both;
+}
+.notif-dropdown.show { display: flex; }
+@keyframes dropIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:none} }
+.notif-head {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+   font-size: 14px; font-weight: 700; color: var(--gold);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.notif-body {
+  max-height: 360px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+}
+.notif-item {
+  display: flex; gap: 12px; padding: 10px; border-radius: 8px;
+  background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.04);
+  transition: all .2s; cursor: default;
+}
+.notif-item:hover { border-color: var(--border); background: rgba(255,255,255,.04); }
+.notif-empty { padding: 20px; text-align: center; color: var(--text-dim); font-size: 13px; }
+.header-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 8px;
+  background: var(--glass); border: 1px solid var(--border);
+  border-radius: 10px; cursor: pointer; transition: all .2s;
+}
+.header-user:hover { border-color: var(--border-2); box-shadow: var(--shadow-gold); }
+.header-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--gold-dim));
+  display: grid; place-items: center;
+   font-size: 12px; font-weight: 800; color: #fff;
+  overflow: hidden;
+}
+.header-username { font-size: 14px; font-weight: 600; color: var(--text-pri);  }
+.header-role { font-size: 11px; color: var(--gold-dim);  letter-spacing: .5px; }
+
+/* ═══════════════════════════════════════════════
+   CONTENT & PAGES
+═══════════════════════════════════════════════ */
+.content {
+  flex: 1; overflow-y: auto; padding: 28px 32px 48px;
+  scrollbar-width: thin; scrollbar-color: rgba(244,201,78,.2) transparent;
+}
+.content::-webkit-scrollbar { width: 5px; }
+.content::-webkit-scrollbar-thumb { background: rgba(244,201,78,.2); border-radius: 4px; }
+
+.page { display: none; flex-direction: column; gap: 24px; animation: pageReveal .4s cubic-bezier(.22,1,.36,1) both; }
+.page.active { display: flex; }
+@keyframes pageReveal { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+
+/* ═══════════════════════════════════════════════
+   LOADING SKELETON
+═══════════════════════════════════════════════ */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(244,201,78,.05) 50%, rgba(255,255,255,.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+.loading-spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid rgba(244,201,78,.2);
+  border-top-color: var(--gold); border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ═══════════════════════════════════════════════
+   TOAST / ALERT
+═══════════════════════════════════════════════ */
+#toast-container {
+  position: fixed; top: 80px; right: 24px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.toast {
+  min-width: 280px; padding: 14px 18px;
+  border-radius: var(--r-sm); font-size: 14px; font-weight: 600;
+   letter-spacing: .4px;
+  backdrop-filter: blur(20px); border: 1px solid;
+  animation: toastIn .35s cubic-bezier(.22,1,.36,1) both;
+  display: flex; align-items: center; gap: 10px;
+}
+@keyframes toastIn { from{transform:translateX(60px);opacity:0} to{transform:none;opacity:1} }
+.toast-success { background: rgba(74,222,128,.12); border-color: rgba(74,222,128,.25); color: #4ade80; }
+.toast-error   { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.25); color: #f87171; }
+.toast-info    { background: rgba(244,201,78,.10);  border-color: rgba(244,201,78,.22);  color: var(--gold); }
+
+/* ═══════════════════════════════════════════════
+   REUSABLE COMPONENTS
+═══════════════════════════════════════════════ */
+
+/* Glass Card */
+.glass-card {
+  background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border); border-radius: var(--r); padding: 22px 24px;
+  transition: border-color .25s, box-shadow .25s, transform .25s; position: relative; overflow: hidden;
+}
+.glass-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(135deg, rgba(244,201,78,.04), transparent 60%);
+  pointer-events: none;
+}
+.glass-card:hover { border-color: var(--border-2); box-shadow: 0 0 32px rgba(244,201,78,.07), var(--shadow-card); transform: translateY(-2px); }
+
+/* Section head */
+.section-eyebrow {
+   font-size: 9px; font-weight: 600;
+  letter-spacing: 3px; text-transform: uppercase; color: var(--gold-dim); margin-bottom: 6px;
+}
+.section-title {
+   font-size: 20px; font-weight: 700;
+  background: linear-gradient(90deg, var(--gold-light), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.section-sub { font-size: 14px; color: var(--text-sec); margin-top: 6px; }
+
+/* Panel title */
+.panel-title {  font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--gold); margin-bottom: 4px; }
+.panel-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 16px;  }
+
+/* Stat cards */
+.stat-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.stat-card {
+  background: var(--glass); border: 1px solid var(--border); border-radius: var(--r); padding: 24px;
+  position: relative; overflow: hidden; transition: all .28s cubic-bezier(.22,1,.36,1); cursor: default;
+}
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(244,201,78,.4),transparent); opacity:0; transition:opacity .28s; }
+.stat-card::after  { content:''; position:absolute; bottom:-30px; right:-20px; width:100px; height:100px; border-radius:50%; opacity:.06; transition:all .28s; }
+.stat-card:nth-child(1)::after { background:var(--gold); }
+.stat-card:nth-child(2)::after { background:#a855f7; }
+.stat-card:nth-child(3)::after { background:#22d3ee; }
+.stat-card:hover { border-color:var(--border-2); transform:translateY(-4px); box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 32px rgba(244,201,78,.07); }
+.stat-card:hover::before { opacity:1; }
+.stat-card:hover::after  { transform:scale(2.5); opacity:.1; }
+
+.stat-icon-wrap { width:48px; height:48px; border-radius:12px; display:grid; place-items:center; font-size:22px; margin-bottom:16px; }
+.si-gold   { background:rgba(244,201,78,.12); box-shadow:0 0 16px rgba(244,201,78,.18); }
+.si-purple { background:rgba(168,85,247,.12); box-shadow:0 0 16px rgba(168,85,247,.18); }
+.si-cyan   { background:rgba(34,211,238,.12); box-shadow:0 0 16px rgba(34,211,238,.18); }
+.si-green  { background:rgba(74,222,128,.12); box-shadow:0 0 16px rgba(74,222,128,.18); }
+
+.stat-val {  font-size:32px; font-weight:800; line-height:1; min-height:38px; }
+.sv-gold   { color:var(--gold);  text-shadow:0 0 20px rgba(244,201,78,.35); }
+.sv-purple { color:#c084fc; text-shadow:0 0 20px rgba(192,132,252,.35); }
+.sv-cyan   { color:#22d3ee; text-shadow:0 0 20px rgba(34,211,238,.35); }
+.sv-green  { color:#4ade80; text-shadow:0 0 20px rgba(74,222,128,.35); }
+
+.stat-label { font-size:13px; color:var(--text-sec); margin-top:6px; letter-spacing:.4px;  font-weight:500; }
+.stat-trend { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; margin-top:8px; padding:3px 8px; border-radius:20px; }
+.st-up   { color:#4ade80; background:rgba(74,222,128,.12); }
+.st-down { color:#f87171; background:rgba(248,113,113,.12); }
+.st-neu  { color:var(--gold); background:rgba(244,201,78,.10); }
+
+/* Buttons */
+.btn-gold {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:11px 24px; border:none; border-radius:var(--r-sm);
+  background:linear-gradient(135deg,var(--gold),var(--gold-dim));
+  color:#1a0f00; font-size:14px; font-weight:700;
+   letter-spacing:.8px;
+  cursor:pointer; transition:all .22s;
+  box-shadow:0 4px 20px rgba(244,201,78,.3);
+}
+.btn-gold:hover { transform:translateY(-2px) scale(1.02); box-shadow:0 8px 32px rgba(244,201,78,.5); filter:brightness(1.1); }
+.btn-gold:active { transform:scale(.97); }
+.btn-gold:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+.btn-outline {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 22px; border-radius:var(--r-sm);
+  background:transparent; border:1px solid var(--border-2);
+  color:var(--gold); font-size:14px; font-weight:600;
+   letter-spacing:.6px;
+  cursor:pointer; transition:all .22s;
+}
+.btn-outline:hover { background:var(--gold-glow); box-shadow:0 0 20px rgba(244,201,78,.12); transform:translateY(-1px); }
+.btn-sm { padding:6px 14px; font-size:13px; border-radius:8px; }
+.btn-danger {
+  background:transparent; border:1px solid rgba(248,113,113,.25);
+  color:#f87171; font-size:13px; padding:6px 14px; border-radius:8px;
+  cursor:pointer;  font-weight:600; transition:all .2s;
+}
+.btn-danger:hover { background:rgba(248,113,113,.1); box-shadow:0 0 12px rgba(248,113,113,.15); }
+
+/* Table */
+.tbl-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+thead th {
+  padding:10px 16px; text-align:left;
+  font-size:11px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase;
+  color:var(--gold-dim); 
+  border-bottom:1px solid var(--border);
+}
+tbody tr { border-bottom:1px solid rgba(244,201,78,.04); transition:background .18s; }
+tbody tr:hover { background:rgba(244,201,78,.03); }
+tbody td { padding:13px 16px; vertical-align:middle; }
+.td-name { font-weight:600; font-size:14px; color:var(--text-pri); }
+.td-muted { font-size:13px; color:var(--text-sec);  }
+.td-actions { display:flex; gap:8px; align-items:center; }
+
+/* Badges */
+.badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; letter-spacing:.4px;  }
+.badge::before { content:''; width:6px; height:6px; border-radius:50%; }
+.b-pending  { color:var(--gold);   background:rgba(244,201,78,.12); border:1px solid rgba(244,201,78,.25); }
+.b-pending::before  { background:var(--gold); box-shadow:0 0 6px var(--gold); }
+.b-approved { color:#4ade80; background:rgba(74,222,128,.10); border:1px solid rgba(74,222,128,.25); }
+.b-approved::before { background:#4ade80; animation:pulse 1.4s infinite; }
+.b-printed  { color:#22d3ee; background:rgba(34,211,238,.10); border:1px solid rgba(34,211,238,.25); }
+.b-printed::before  { background:#22d3ee; }
+.b-rejected { color:#f87171; background:rgba(248,113,113,.10); border:1px solid rgba(248,113,113,.25); }
+.b-rejected::before { background:#f87171; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Inputs */
+.input-group { display:flex; flex-direction:column; gap:6px; }
+.input-label { font-size:12px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gold-dim);  }
+.input-field {
+  background:rgba(255,255,255,.04); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:11px 14px;
+  color:var(--text-pri);  font-size:15px;
+  outline:none; transition:all .2s; width:100%;
+}
+.input-field:focus { border-color:var(--gold-dim); box-shadow:0 0 0 3px rgba(244,201,78,.08); background:rgba(255,255,255,.06); }
+.input-field::placeholder { color:var(--text-dim); }
+select.input-field option { background:#1a0f2e; color:var(--text-pri); }
+
+/* Chart wrap */
+.chart-wrap canvas { max-height:240px; }
+
+/* QR Box */
+.qr-box {
+  width:44px; height:44px; border-radius:8px;
+  background:var(--glass-2); border:1px solid var(--border);
+  display:grid; place-items:center; font-size:20px;
+  cursor:pointer; transition:all .2s; overflow:hidden;
+}
+.qr-box:hover { border-color:var(--border-2); box-shadow:0 0 12px rgba(244,201,78,.2); }
+.qr-box img { width:100%; height:100%; object-fit:cover; }
+
+/* Error state */
+.empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:48px; gap:12px; text-align:center;
+}
+.empty-icon { font-size:48px; opacity:.4; }
+.empty-text { font-size:15px; color:var(--text-sec);  }
+
+/* ═══════════════════════════════════════════════
+   PAGE 1 — DASHBOARD
+═══════════════════════════════════════════════ */
+.welcome-banner {
+  background:linear-gradient(135deg, rgba(124,58,237,.18), rgba(244,201,78,.06));
+  border:1px solid var(--border-2); border-radius:var(--r); padding:28px 32px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:relative; overflow:hidden;
+}
+.welcome-banner::before {
+  content:''; position:absolute; right:-40px; top:-40px;
+  width:200px; height:200px; border-radius:50%;
+  background:radial-gradient(circle, rgba(244,201,78,.08) 0%, transparent 70%);
+}
+.welcome-banner::after {
+  content:'▪'; position:absolute; right:32px; top:50%; transform:translateY(-50%);
+  font-size:80px; color:rgba(244,201,78,.06);  pointer-events:none;
+}
+.welcome-greeting {  font-size:12px; font-weight:600; letter-spacing:3px; text-transform:uppercase; color:var(--gold-dim); margin-bottom:8px; }
+.welcome-name {  font-size:26px; font-weight:800; background:linear-gradient(90deg,var(--gold-light),var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.welcome-sub { font-size:14px; color:var(--text-sec); margin-top:8px; max-width:420px; }
+.welcome-time { font-size:12px; color:var(--text-dim); margin-top:12px;  letter-spacing:.5px; }
+
+.dash-charts { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+
+/* Activity */
+.activity-list { display:flex; flex-direction:column; gap:10px; }
+.activity-item {
+  display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px;
+  background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.04); transition:border-color .2s;
+}
+.activity-item:hover { border-color:var(--border); }
+.act-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.act-msg { font-size:14px; color:var(--text-pri); }
+.act-time { font-size:12px; color:var(--text-dim);  margin-top:2px; }
+
+/* ═══════════════════════════════════════════════
+   PAGE 2 — UPLOAD
+═══════════════════════════════════════════════ */
+.upload-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:24px; align-items:start; }
+.drop-zone {
+  border:2px dashed var(--border-2); border-radius:var(--r);
+  padding:56px 32px; text-align:center; cursor:pointer;
+  transition:all .28s cubic-bezier(.22,1,.36,1); background:rgba(244,201,78,.02);
+  position:relative; overflow:hidden;
+}
+.drop-zone::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 50%, rgba(244,201,78,.06) 0%, transparent 65%);
+  opacity:0; transition:opacity .28s;
+}
+.drop-zone:hover, .drop-zone.dragover { border-color:var(--gold); background:rgba(244,201,78,.04); box-shadow:0 0 40px rgba(244,201,78,.1), inset 0 0 40px rgba(244,201,78,.03); }
+.drop-zone:hover::before, .drop-zone.dragover::before { opacity:1; }
+.drop-icon { font-size:52px; margin-bottom:16px; filter:drop-shadow(0 0 16px rgba(244,201,78,.4)); animation:float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.drop-title {  font-size:15px; font-weight:700; color:var(--gold); margin-bottom:8px; }
+.drop-sub { font-size:14px; color:var(--text-sec); }
+.drop-types { font-size:12px; color:var(--text-dim); margin-top:12px;  letter-spacing:.5px; }
+input[type=file] { display:none; }
+.file-preview {
+  display:none; margin-top:16px; background:var(--glass-2); border:1px solid var(--border);
+  border-radius:10px; padding:12px 16px; font-size:14px; color:var(--gold);
+   align-items:center; gap:10px;
+}
+.file-preview.show { display:flex; }
+.upload-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.upload-summary { background:var(--glass); border:1px solid var(--border); border-radius:var(--r); padding:20px; display:flex; flex-direction:column; gap:10px; }
+.sum-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+.sum-row:last-child { border-bottom:none; }
+.sum-key { font-size:13px; color:var(--text-sec);  }
+.sum-val { font-size:14px; font-weight:600; color:var(--gold);  }
+.upload-progress { display:none; flex-direction:column; gap:8px; margin-top:8px; }
+.upload-progress.show { display:flex; }
+.prog-bar-wrap { height:6px; background:rgba(255,255,255,.08); border-radius:4px; overflow:hidden; }
+.prog-bar { height:100%; background:linear-gradient(90deg,var(--gold-dim),var(--gold)); border-radius:4px; width:0; transition:width .5s ease; }
+.prog-label { font-size:12px; color:var(--gold);  letter-spacing:.5px; }
+
+/* ═══════════════════════════════════════════════
+   PAGE 3 — DOCUMENTS
+═══════════════════════════════════════════════ */
+.doc-filters { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.filter-chip {
+  padding:6px 14px; border-radius:20px; font-size:13px; font-weight:600;
+  border:1px solid var(--border); background:transparent; color:var(--text-sec);
+  cursor:pointer;  transition:all .2s;
+}
+.filter-chip.active, .filter-chip:hover { background:rgba(244,201,78,.08); border-color:var(--border-2); color:var(--gold); }
+
+/* ═══════════════════════════════════════════════
+   PAGE 5 — PROFILE
+═══════════════════════════════════════════════ */
+.profile-grid { display:grid; grid-template-columns:300px 1fr; gap:24px; align-items:start; }
+.profile-card {
+  background:var(--glass); border:1px solid var(--border); border-radius:var(--r); padding:32px 24px; text-align:center; position:relative; overflow:hidden;
+}
+.profile-card::before { content:''; position:absolute; top:0; left:0; right:0; height:80px; background:linear-gradient(180deg,rgba(124,58,237,.2),transparent); }
+.profile-avatar {
+  width:88px; height:88px; border-radius:50%; margin:0 auto 16px;
+  background:linear-gradient(135deg,var(--purple),var(--gold-dim));
+  display:grid; place-items:center;
+   font-size:28px; font-weight:900; color:#fff;
+  box-shadow:0 0 0 3px rgba(244,201,78,.2),0 0 32px rgba(244,201,78,.2);
+  animation:avatarPulse 4s ease-in-out infinite;
+  overflow: hidden;
+}
+@keyframes avatarPulse {
+  0%,100%{box-shadow:0 0 0 3px rgba(244,201,78,.2),0 0 32px rgba(244,201,78,.2)}
+  50%{box-shadow:0 0 0 6px rgba(244,201,78,.1),0 0 48px rgba(244,201,78,.3)}
+}
+.profile-name {  font-size:17px; font-weight:800; color:var(--gold-light); margin-bottom:4px; }
+.profile-role { font-size:13px; color:var(--text-sec);  letter-spacing:.5px; margin-bottom:20px; }
+.profile-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+.pstat { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; padding:10px; }
+.pstat-val {  font-size:18px; font-weight:800; color:var(--gold); }
+.pstat-key { font-size:11px; color:var(--text-dim);  letter-spacing:.5px; margin-top:2px; }
+.profile-form { display:flex; flex-direction:column; gap:14px; }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.profile-detail-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:13px 16px; background:rgba(255,255,255,.02);
+  border:1px solid rgba(255,255,255,.05); border-radius:10px; transition:border-color .2s;
+}
+.profile-detail-row:hover { border-color:var(--border); }
+.pdr-key { font-size:12px; color:var(--text-dim);  letter-spacing:.8px; text-transform:uppercase; }
+.pdr-val { font-size:15px; font-weight:600; color:var(--text-pri);  }
+
+/* ═══════════════════════════════════════════════
+   LOGOUT
+═══════════════════════════════════════════════ */
+.logout-screen {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:65vh; gap:20px; text-align:center;
+}
+.logout-hex { font-size:80px; filter:drop-shadow(0 0 24px rgba(244,201,78,.3)); animation:hexSpin 6s linear infinite; }
+@keyframes hexSpin { 0%{transform:rotateY(0deg)} 100%{transform:rotateY(360deg)} }
+.logout-title {  font-size:24px; font-weight:800; color:var(--gold-light); }
+.logout-sub { font-size:15px; color:var(--text-sec); max-width:360px; line-height:1.7; }
+.logout-btns { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+
+/* ══ scrollbar ══ */
+*{ scrollbar-width:thin; scrollbar-color:rgba(244,201,78,.15) transparent; }
+*::-webkit-scrollbar{ width:5px; }
+*::-webkit-scrollbar-thumb{ background:rgba(244,201,78,.15); border-radius:4px; }
+
+/* ═══════════════════════════════════════════════
+   CUSTOM RENAME MODAL
+   ═══════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 2, 8, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-container {
+  width: 90%;
+  max-width: 460px;
+  background: rgba(14, 9, 28, 0.96);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(244, 201, 78, 0.15);
+  padding: 28px 32px;
+  transform: translateY(20px) scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+.modal-overlay.show .modal-container {
+  transform: translateY(0) scale(1);
+}
+.modal-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+  box-shadow: 0 0 15px rgba(244, 201, 78, 0.6);
+}
+.modal-header {
+  margin-bottom: 20px;
+}
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--gold-light), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
+}
+.modal-subtitle {
+  font-size: 13px;
+  color: var(--text-sec);
+  margin-top: 4px;
+}
+.modal-body {
+  margin-bottom: 24px;
+}
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="app">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside class="sidebar">
+    <div class="brand" style="cursor: pointer;" onclick="navigate('dashboard', document.querySelector('.nav-item'))">
+      <div class="brand-logo" style="background: none; box-shadow: none; padding: 2px;">
+        <img src="/static/images/sk.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div>
+        <div class="brand-name">QR SmartPrint</div>
+        <div class="brand-sub">User Portal v1.0</div>
+      </div>
+    </div>
+
+    <div class="sidebar-user" style="cursor: pointer;" onclick="navigate('profile', Array.from(document.querySelectorAll('.nav-item')).find(el => el.textContent.includes('Profile')))">
+      <div class="sidebar-avatar" id="sidebarInitials">—</div>
+      <div>
+        <div class="sidebar-user-name" id="sidebarName">Loading...</div>
+        <div class="sidebar-user-role">● ONLINE · STUDENT</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-section-label">Navigation</div>
+      <div class="nav-item active"  onclick="navigate('dashboard',this)"><span class="nav-icon">▪</span> Dashboard</div>
+      <div class="nav-item"         onclick="navigate('upload',this)"><span class="nav-icon">⬆</span> Upload Document</div>
+      <div class="nav-item"         onclick="navigate('documents',this)"><span class="nav-icon">◉</span> My Documents <span class="nav-badge" id="docBadge">—</span></div>
+      <div class="nav-item"         onclick="navigate('printjobs',this)"><span class="nav-icon">•</span> Print Jobs <span class="nav-badge" id="jobBadge">—</span></div>
+      <div class="nav-section-label" style="margin-top:8px">Account</div>
+      <div class="nav-item"         onclick="navigate('profile',this)"><span class="nav-icon">◎</span> Profile</div>
+      <div class="nav-item logout"  onclick="navigate('logout',this)"><span class="nav-icon">⏻</span> Sign Out</div>
+    </nav>
+
+    <div class="sidebar-footer">
+      System Status: <span>● OPERATIONAL</span><br/>
+      Printers Online: <span>3 / 3</span>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div class="main">
+    <header class="header">
+      <div class="header-left">
+        <span class="header-page-label" id="pageLabel">Overview</span>
+        <span class="header-sep">›</span>
+        <span class="header-title" id="pageTitle">Dashboard</span>
+      </div>
+      <div class="header-right">
+        <div class="notif-wrapper">
+          <div class="header-notif" title="Notifications" onclick="toggleNotif()">🔔<div class="notif-dot" id="headerNotifDot" style="display:none"></div></div>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-head">Notifications <span style="font-size:11px;color:var(--text-dim);font-weight:400" id="notifCount">0</span></div>
+            <div class="notif-body" id="notifBody">
+              <div class="notif-empty">No new notifications</div>
+            </div>
+          </div>
+        </div>
+        <div class="header-user" onclick="navigate('profile', Array.from(document.querySelectorAll('.nav-item')).find(el => el.textContent.includes('Profile')))">
+          <div class="header-avatar" id="headerInitials">—</div>
+          <div>
+            <div class="header-username" id="headerName">Loading…</div>
+            <div class="header-role">Student Account</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ▓▓▓▓▓  DASHBOARD  ▓▓▓▓▓ -->
+      <div class="page active" id="page-dashboard">
+        <div class="welcome-banner">
+          <div>
+            <div class="welcome-greeting">▪ Welcome Back</div>
+            <div class="welcome-name" id="welcomeName">…</div>
+            <div class="welcome-sub" id="welcomeSub">Fetching your data…</div>
+            <div class="welcome-time" id="currentTime"></div>
+          </div>
+        </div>
+
+        <div class="stat-cards">
+          <div class="stat-card">
+            <div class="stat-icon-wrap si-gold">📄</div>
+            <div class="stat-val sv-gold" id="statDocs"><div class="skeleton" style="width:60px;height:32px"></div></div>
+            <div class="stat-label">Total Documents</div>
+            <div class="stat-trend st-up" id="statDocsTrend">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrap si-purple">⏳</div>
+            <div class="stat-val sv-purple" id="statPending"><div class="skeleton" style="width:40px;height:32px"></div></div>
+            <div class="stat-label">Pending Prints</div>
+            <div class="stat-trend st-neu" id="statPendingTrend">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon-wrap si-cyan">✅</div>
+            <div class="stat-val sv-cyan" id="statCompleted"><div class="skeleton" style="width:40px;height:32px"></div></div>
+            <div class="stat-label">Completed Prints</div>
+            <div class="stat-trend st-up" id="statCompletedTrend">—</div>
+          </div>
+        </div>
+
+        <div class="dash-charts">
+          <div class="glass-card">
+            <div class="panel-title">Print Activity</div>
+            <div class="panel-sub">Jobs submitted vs completed over time</div>
+            <div class="chart-wrap"><canvas id="dashLineChart"></canvas></div>
+          </div>
+          <div class="glass-card">
+            <div class="panel-title">Job Status Breakdown</div>
+            <div class="panel-sub">All-time distribution</div>
+            <div class="chart-wrap" style="max-height:200px;display:flex;justify-content:center">
+              <canvas id="dashDoughnut" style="max-height:200px"></canvas>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">
+              <span style="font-size:12px;color:var(--gold)">⬤ Pending</span>
+              <span style="font-size:12px;color:#4ade80">⬤ Approved</span>
+              <span style="font-size:12px;color:#22d3ee">⬤ Printed</span>
+              <span style="font-size:12px;color:#f87171">⬤ Rejected</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="panel-title">Recent Activity</div>
+          <div class="panel-sub">Your latest actions on the system</div>
+          <div class="activity-list" id="activityFeed">
+            <div class="skeleton" style="height:48px"></div>
+            <div class="skeleton" style="height:48px"></div>
+            <div class="skeleton" style="height:48px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓  UPLOAD  ▓▓▓▓▓ -->
+      <div class="page" id="page-upload">
+        <div>
+          <div class="section-eyebrow">▪ Document Management</div>
+          <div class="section-title">Upload Document</div>
+          <div class="section-sub">Upload your file and configure print settings before submission.</div>
+        </div>
+
+        <div class="upload-grid">
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div class="drop-zone" id="dropZone"
+              onclick="document.getElementById('fileInput').click()"
+              ondragover="handleDragOver(event)"
+              ondragleave="handleDragLeave(event)"
+              ondrop="handleDrop(event)">
+              <div class="drop-icon">📤</div>
+              <div class="drop-title">DROP YOUR FILE HERE</div>
+              <div class="drop-sub">or click to browse</div>
+              <div class="drop-types">PDF · DOCX · XLSX · JPG · PNG · TXT</div>
+              <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.jpg,.png,.txt" onchange="handleFileSelect(event)"/>
+            </div>
+            <div class="file-preview" id="filePreview" style="justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:10px"><span>📄</span><span id="filePreviewName">—</span></div>
+              <button onclick="clearFileSelection()" style="background:transparent;border:none;color:var(--text-sec);cursor:pointer;font-size:16px;padding:0 8px" title="Remove file">✕</button>
+            </div>
+
+            <div class="glass-card" style="padding:20px">
+              <div class="panel-title" style="margin-bottom:16px">Print Configuration</div>
+              <div class="upload-form-grid">
+                <div class="input-group">
+                  <label class="input-label">Pages</label>
+                  <select class="input-field" id="cfgPages" onchange="updateSummary()">
+                    <option value="all">All Pages</option>
+                    <option value="range">Page Range</option>
+                    <option value="odd">Odd Pages</option>
+                    <option value="even">Even Pages</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Copies</label>
+                  <input class="input-field" type="number" id="cfgCopies" value="1" min="1" max="50" oninput="updateSummary()"/>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Print Type</label>
+                  <select class="input-field" id="cfgType" onchange="updateSummary()">
+                    <option>Black &amp; White</option>
+                    <option>Color</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Paper Size</label>
+                  <select class="input-field" id="cfgPaper">
+                    <option>A4</option><option>A3</option><option>Letter</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Orientation</label>
+                  <select class="input-field" id="cfgOrient">
+                    <option>Portrait</option><option>Landscape</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label class="input-label">Binding</label>
+                  <select class="input-field" id="cfgBind">
+                    <option>None</option><option>Staple</option><option>Spiral</option>
+                  </select>
+                </div>
+              </div>
+              <div class="input-group" style="margin-top:12px">
+                <label class="input-label">Print Side</label>
+                <select class="input-field" id="cfgSide" onchange="updateSummary()">
+                  <option value="single">Single Sided</option>
+                  <option value="double">Double Sided</option>
+                </select>
+              </div>
+              <div class="upload-progress" id="uploadProgress">
+                <div class="prog-label" id="progLabel">Uploading…</div>
+                <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
+              </div>
+              <button class="btn-gold" id="submitBtn" style="margin-top:16px;width:100%;justify-content:center" onclick="submitUpload()">
+                • SUBMIT PRINT REQUEST
+              </button>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="glass-card">
+              <div class="panel-title" style="margin-bottom:14px">Upload Summary</div>
+              <div class="upload-summary">
+                <div class="sum-row"><span class="sum-key">File Name</span><span class="sum-val" id="sumFile">—</span></div>
+                <div class="sum-row"><span class="sum-key">File Size</span><span class="sum-val" id="sumSize">—</span></div>
+                <div class="sum-row"><span class="sum-key">Pages</span><span class="sum-val" id="sumPages">—</span></div>
+                <div class="sum-row"><span class="sum-key">Copies</span><span class="sum-val" id="sumCopies">1</span></div>
+                <div class="sum-row"><span class="sum-key">Print Type</span><span class="sum-val" id="sumType">B&amp;W</span></div>
+                <div class="sum-row"><span class="sum-key">Est. Cost</span><span class="sum-val" id="sumCost">₹ 0.00</span></div>
+              </div>
+            </div>
+            <div class="glass-card" style="background:rgba(244,201,78,.04);border-color:rgba(244,201,78,.2)">
+              <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:var(--gold);margin-bottom:12px">• HOW IT WORKS</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;gap:10px;font-size:14px;color:var(--text-sec)"><span style="color:var(--gold);font-weight:700;font-size:12px;flex-shrink:0">01</span>Upload your file and configure print settings</div>
+                <div style="display:flex;gap:10px;font-size:14px;color:var(--text-sec)"><span style="color:var(--gold);font-weight:700;font-size:12px;flex-shrink:0">02</span>Admin reviews and approves your request</div>
+                <div style="display:flex;gap:10px;font-size:14px;color:var(--text-sec)"><span style="color:var(--gold);font-weight:700;font-size:12px;flex-shrink:0">03</span>Scan the QR code at the print station</div>
+                <div style="display:flex;gap:10px;font-size:14px;color:var(--text-sec)"><span style="color:var(--gold);font-weight:700;font-size:12px;flex-shrink:0">04</span>Collect your printed document</div>
+              </div>
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(244,201,78,.15);display:flex;gap:12px;align-items:start">
+                <span style="font-size:18px">🛡️</span>
+                <div style="font-size:12px;color:var(--text-sec);line-height:1.5">
+                  <strong style="color:var(--gold-light)">Privacy Notice:</strong> Any sensitive or confidential documents will be permanently deleted from the system automatically after successful printing to ensure maximum security.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓  MY DOCUMENTS  ▓▓▓▓▓ -->
+      <div class="page" id="page-documents">
+        <div>
+          <div class="section-eyebrow">▪ File Manager</div>
+          <div class="section-title">My Documents</div>
+          <div class="section-sub">All your uploaded files. Manage, view or delete anytime.</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div class="doc-filters">
+            <div class="filter-chip active" onclick="filterDocs(this,'all')">All Files</div>
+            <div class="filter-chip" onclick="filterDocs(this,'pdf')">PDF</div>
+            <div class="filter-chip" onclick="filterDocs(this,'docx')">DOCX</div>
+            <div class="filter-chip" onclick="filterDocs(this,'image')">Images</div>
+          </div>
+          <input class="input-field" style="width:220px" id="docSearch" placeholder="🔍 Search documents…" oninput="filterDocs(null,null,this.value)"/>
+        </div>
+        <div class="glass-card" style="padding:0">
+          <div id="docsTableWrap">
+            <div style="padding:32px"><div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓  PRINT JOBS  ▓▓▓▓▓ -->
+      <div class="page" id="page-printjobs">
+        <div>
+          <div class="section-eyebrow">▪ Print Management</div>
+          <div class="section-title">My Print Jobs</div>
+          <div class="section-sub">Track your print requests and collect QR codes for approved jobs.</div>
+        </div>
+        <div class="stat-cards" id="jobStatCards">
+          <div class="stat-card"><div class="stat-icon-wrap si-gold">⏳</div><div class="stat-val sv-gold" id="jsP"><div class="skeleton" style="width:36px;height:28px"></div></div><div class="stat-label">Pending</div></div>
+          <div class="stat-card"><div class="stat-icon-wrap si-green">✅</div><div class="stat-val sv-green" id="jsA"><div class="skeleton" style="width:36px;height:28px"></div></div><div class="stat-label">Approved</div></div>
+          <div class="stat-card"><div class="stat-icon-wrap si-cyan">🖨️</div><div class="stat-val sv-cyan" id="jsC"><div class="skeleton" style="width:36px;height:28px"></div></div><div class="stat-label">Printed</div></div>
+        </div>
+        <div class="glass-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">
+            <div class="panel-title">All Print Jobs</div>
+            <div style="display:flex;gap:4px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--r-sm);padding:4px">
+              <div class="job-tab active" onclick="filterJobs(this,'all')" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--gold);background:rgba(244,201,78,.08);border:1px solid var(--border-2)">All</div>
+              <div class="job-tab" onclick="filterJobs(this,'pending')" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-sec);border:1px solid transparent">Pending</div>
+              <div class="job-tab" onclick="filterJobs(this,'approved')" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-sec);border:1px solid transparent">Approved</div>
+              <div class="job-tab" onclick="filterJobs(this,'printed')" style="padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-sec);border:1px solid transparent">Printed</div>
+            </div>
+          </div>
+          <div id="printJobsWrap">
+            <div class="skeleton" style="height:48px;margin-bottom:10px"></div>
+            <div class="skeleton" style="height:48px;margin-bottom:10px"></div>
+            <div class="skeleton" style="height:48px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓  PROFILE  ▓▓▓▓▓ -->
+      <div class="page" id="page-profile">
+        <div>
+          <div class="section-eyebrow">▪ Account Settings</div>
+          <div class="section-title">My Profile</div>
+          <div class="section-sub">Manage your personal information and account preferences.</div>
+        </div>
+        <div class="profile-grid">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="profile-card">
+              <div class="profile-avatar" id="profileAvatar">—</div>
+              <div class="profile-name" id="profileName">Loading…</div>
+              <div class="profile-role">STUDENT ACCOUNT</div>
+              <div class="profile-stats">
+                <div class="pstat"><div class="pstat-val" id="psD">—</div><div class="pstat-key">DOCS</div></div>
+                <div class="pstat"><div class="pstat-val" id="psP">—</div><div class="pstat-key">PRINTS</div></div>
+                <div class="pstat"><div class="pstat-val" id="psPe">—</div><div class="pstat-key">PENDING</div></div>
+                <div class="pstat"><div class="pstat-val">A+</div><div class="pstat-key">RATING</div></div>
+              </div>
+              <button class="btn-gold" style="width:100%;justify-content:center" onclick="document.getElementById('profilePhotoInput').click()">✏ Edit Profile Photo</button>
+              <input type="file" id="profilePhotoInput" accept=".png,.jpg,.jpeg,.gif" style="display:none;" onchange="uploadProfilePhoto(event)" />
+            </div>
+            <div class="glass-card" style="padding:18px">
+              <div class="panel-title" style="margin-bottom:12px">Account Details</div>
+              <div style="display:flex;flex-direction:column;gap:8px" id="profileMeta"></div>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="panel-title" style="margin-bottom:4px">Edit Profile Information</div>
+            <div class="panel-sub" style="margin-bottom:20px">Update your personal details below</div>
+            <div class="profile-form" id="profileForm">
+              <div class="skeleton" style="height:48px"></div>
+              <div class="skeleton" style="height:48px"></div>
+              <div class="skeleton" style="height:48px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ▓▓▓▓▓  LOGOUT  ▓▓▓▓▓ -->
+      <div class="page" id="page-logout">
+        <div class="logout-screen">
+          <div class="logout-hex">•</div>
+          <div class="logout-title">SIGN OUT</div>
+          <div class="logout-sub">Are you sure you want to sign out of your QR SmartPrint account? Your session will be securely terminated.</div>
+          <div class="logout-btns">
+            <button class="btn-gold" onclick="navigate('dashboard',document.querySelector('.nav-item'))">▪ Stay Logged In</button>
+            <button class="btn-danger" style="padding:11px 24px;font-size:14px;border-radius:var(--r-sm);letter-spacing:.6px" onclick="doLogout()">⏻ Confirm Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+  <!-- ══════════ DOCUMENT RENAME MODAL ══════════ -->
+  <div class="modal-overlay" id="renameModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title">• RENAME DOCUMENT</div>
+        <div class="modal-subtitle">Give your document a new descriptive name. The original file type extension will be preserved automatically.</div>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label class="input-label" for="renameInput">New Document Name</label>
+          <input class="input-field" type="text" id="renameInput" placeholder="Enter new name..." autocomplete="off"/>
+          <input type="hidden" id="renameDocId"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline btn-sm" onclick="closeRenameModal()">Cancel</button>
+        <button class="btn-gold btn-sm" id="confirmRenameBtn" onclick="submitRename()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+/* ════════════════════════════════════════════════════
+   CONFIG
+════════════════════════════════════════════════════ */
+const API_BASE = '';   // Same-origin Flask server. Change if different host.
+
+/* ════════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════════ */
+const PAGE_META = {
+  dashboard: { label:'Overview',   title:'Dashboard' },
+  upload:    { label:'Documents',  title:'Upload Document' },
+  documents: { label:'Documents',  title:'My Documents' },
+  printjobs: { label:'Printing',   title:'Print Jobs' },
+  profile:   { label:'Account',    title:'Profile' },
+  logout:    { label:'Account',    title:'Sign Out' },
+};
+
+function navigate(pageId, navEl) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const pg = document.getElementById('page-' + pageId);
+  if (pg) pg.classList.add('active');
+  const m = PAGE_META[pageId] || {};
+  document.getElementById('pageLabel').textContent = m.label || '';
+  document.getElementById('pageTitle').textContent = m.title || '';
+  // Lazy-load page data
+  if (pageId === 'dashboard') loadDashboard();
+  if (pageId === 'documents') loadDocuments();
+  if (pageId === 'printjobs') loadPrintJobs();
+  if (pageId === 'profile')   loadProfile();
+}
+
+/* ════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════ */
+function toast(msg, type = 'info', dur = 3500) {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '▪';
+  el.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => { el.style.animation = 'none'; el.style.opacity = '0'; el.style.transform = 'translateX(60px)'; el.style.transition = '.3s'; setTimeout(() => el.remove(), 300); }, dur);
+}
+
+function toggleNotif() {
+  document.getElementById('notifDropdown').classList.toggle('show');
+}
+document.addEventListener('click', (e) => {
+  const wrp = document.querySelector('.notif-wrapper');
+  if (wrp && !wrp.contains(e.target)) {
+    const dd = document.getElementById('notifDropdown');
+    if (dd && dd.classList.contains('show')) dd.classList.remove('show');
+  }
+});
+
+/* ════════════════════════════════════════════════════
+   API HELPER
+════════════════════════════════════════════════════ */
+async function apiFetch(endpoint, opts = {}) {
+  try {
+    const res = await fetch(API_BASE + endpoint, { credentials: 'include', ...opts });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('[API]', endpoint, err.message);
+    throw err;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════════════════ */
+function tick() {
+  const el = document.getElementById('currentTime');
+  if (el) el.textContent = '▪ ' + new Date().toLocaleString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+tick(); setInterval(tick, 1000);
+
+/* ════════════════════════════════════════════════════
+   CHART DEFAULTS
+════════════════════════════════════════════════════ */
+Chart.defaults.color = 'rgba(240,230,255,0.5)';
+Chart.defaults.font.family = "var(--font-primary)";
+Chart.defaults.font.size = 13;
+Chart.defaults.font.weight = 'bold';
+const GC = 'rgba(244,201,78,0.06)';
+const TOOLTIP = { backgroundColor:'rgba(8,5,18,.95)', borderColor:'rgba(244,201,78,.2)', borderWidth:1, padding:10, titleColor:'#f4c94e', bodyColor:'rgba(240,230,255,.7)' };
+
+let lineChart = null;
+let doughnutChart = null;
+
+function buildCharts(stats) {
+  // Doughnut
+  const dCtx = document.getElementById('dashDoughnut');
+  if (doughnutChart) doughnutChart.destroy();
+  doughnutChart = new Chart(dCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending','Approved','Printed','Rejected'],
+      datasets: [{ data: [stats.pending || 0, stats.approved || 0, stats.completed || 0, stats.rejected || 0],
+        backgroundColor: ['rgba(244,201,78,.8)','rgba(74,222,128,.8)','rgba(34,211,238,.8)','rgba(248,113,113,.8)'],
+        borderColor: ['#f4c94e','#4ade80','#22d3ee','#f87171'], borderWidth: 2, hoverOffset: 8 }]
+    },
+    options: { cutout:'70%', plugins:{ legend:{display:false}, tooltip:TOOLTIP }, animation:{duration:1200} }
+  });
+
+  // Line — use monthly_activity if provided, else fallback
+  const lCtx = document.getElementById('dashLineChart');
+  const labels   = stats.monthly_labels   || ['Jan','Feb','Mar','Apr','May','Jun'];
+  const submitted = stats.monthly_submitted || [0,0,0,0,0,stats.documents || 0];
+  const completed = stats.monthly_completed || [0,0,0,0,0,stats.completed  || 0];
+
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(lCtx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Submitted', data: submitted,
+          borderColor:'#f4c94e', backgroundColor:'rgba(244,201,78,.08)', fill:true,
+          tension:.45, pointBackgroundColor:'#f4c94e', pointRadius:4, pointHoverRadius:7 },
+        { label:'Completed', data: completed,
+          borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,.05)', fill:true,
+          tension:.45, pointBackgroundColor:'#22d3ee', pointRadius:4, pointHoverRadius:7 }
+      ]
+    },
+    options: {
+      plugins:{ legend:{labels:{color:'rgba(240,230,255,.5)',font:{size:11},boxWidth:10}}, tooltip:TOOLTIP },
+      scales:{ x:{grid:{display:false}}, y:{grid:{display:false},beginAtZero:true} },
+      animation:{duration:1200}
+    }
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   PAGE: DASHBOARD
+════════════════════════════════════════════════════ */
+async function loadDashboard() {
+  try {
+    const stats = await apiFetch('/stats');
+
+    // Name
+    const name = stats.user_name || 'User';
+    document.getElementById('welcomeName').textContent = name;
+    document.getElementById('welcomeSub').textContent =
+      `You have ${stats.pending || 0} pending print job${stats.pending !== 1 ? 's' : ''} and ${stats.documents || 0} total document${stats.documents !== 1 ? 's' : ''}.`;
+
+    // Sidebar & header
+    setUserMeta(name, stats.profile_photo);
+
+    // Stat cards
+    animateCount('statDocs',      stats.documents || 0);
+    animateCount('statPending',   stats.pending   || 0);
+    animateCount('statCompleted', stats.completed || 0);
+    document.getElementById('statDocsTrend').textContent    = `${stats.documents || 0} total uploads`;
+    document.getElementById('statPendingTrend').textContent = `${stats.pending || 0} awaiting approval`;
+    document.getElementById('statCompletedTrend').textContent = `▲ ${stats.completed || 0} this month`;
+
+    // Badges
+    document.getElementById('docBadge').textContent = stats.documents || 0;
+    document.getElementById('jobBadge').textContent = stats.pending   || 0;
+
+    // Charts
+    buildCharts(stats);
+
+    // Activity
+    const acts = stats.recent_activity || [];
+    const feed = document.getElementById('activityFeed');
+    const notifBody = document.getElementById('notifBody');
+    const notifCount = document.getElementById('notifCount');
+    const notifDot = document.getElementById('headerNotifDot');
+
+    if (acts.length === 0) {
+      feed.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No recent activity yet.</div></div>';
+      if(notifBody) notifBody.innerHTML = '<div class="notif-empty">No new notifications</div>';
+      if(notifCount) notifCount.textContent = '0';
+      if(notifDot) notifDot.style.display = 'none';
+    } else {
+      feed.innerHTML = acts.map(a => `
+        <div class="activity-item">
+          <div class="act-dot" style="background:${a.color || '#f4c94e'};box-shadow:0 0 6px ${a.color || '#f4c94e'}"></div>
+          <div style="flex:1"><div class="act-msg">${escHtml(a.message)}</div><div class="act-time">${escHtml(a.time)}</div></div>
+          <span style="font-size:16px">${a.icon || '📄'}</span>
+        </div>`).join('');
+        
+      if(notifBody) {
+        notifBody.innerHTML = acts.map(a => `
+          <div class="notif-item">
+            <div class="act-dot" style="background:${a.color || '#f4c94e'};box-shadow:0 0 6px ${a.color || '#f4c94e'};margin-top:6px;flex-shrink:0;"></div>
+            <div style="flex:1">
+              <div style="font-size:13px;color:var(--text-pri);line-height:1.4">${escHtml(a.message)}</div>
+              <div style="font-size:11px;color:var(--text-dim);margin-top:4px">${escHtml(a.time)}</div>
+            </div>
+          </div>`).join('');
+      }
+      if(notifCount) notifCount.textContent = acts.length;
+      if(notifDot) notifDot.style.display = 'block';
+    }
+  } catch(e) {
+    toast('Could not load dashboard data. Check backend connection.', 'error');
+    // Fallback: show zeros
+    ['statDocs','statPending','statCompleted'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('welcomeName').textContent = 'User';
+    document.getElementById('welcomeSub').textContent = 'Backend not connected. Showing offline mode.';
+    buildCharts({ pending:0, approved:0, completed:0, rejected:0, documents:0 });
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   PAGE: UPLOAD
+════════════════════════════════════════════════════ */
+let selectedFile = null;
+
+function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('dragover'); }
+function handleDragLeave() { document.getElementById('dropZone').classList.remove('dragover'); }
+function handleDrop(e) {
+  e.preventDefault(); document.getElementById('dropZone').classList.remove('dragover');
+  if (e.dataTransfer.files[0]) showFilePreview(e.dataTransfer.files[0]);
+}
+function handleFileSelect(e) { if (e.target.files[0]) showFilePreview(e.target.files[0]); }
+
+function clearFileSelection() {
+  selectedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('filePreview').classList.remove('show');
+  document.getElementById('sumFile').textContent = '—';
+  document.getElementById('sumSize').textContent = '—';
+  document.getElementById('sumPages').textContent = '—';
+  document.getElementById('sumCopies').textContent = '1';
+  document.getElementById('sumType').textContent = 'B&W';
+  document.getElementById('sumCost').textContent = '₹ 0.00';
+  calculatedPages = 1;
+}
+
+let calculatedPages = 1;
+const RATE_BW = 2;
+const RATE_COLOR = 10;
+
+async function showFilePreview(file) {
+  selectedFile = file;
+  const name = file.name;
+  const size = (file.size / 1024).toFixed(1) + ' KB';
+  document.getElementById('filePreviewName').textContent = name + ' · ' + size;
+  document.getElementById('filePreview').classList.add('show');
+  document.getElementById('sumFile').textContent = name.length > 22 ? name.slice(0,22) + '…' : name;
+  document.getElementById('sumSize').textContent = size;
+  
+  calculatedPages = 1;
+  document.getElementById('sumPages').textContent = 'Calculating…';
+
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith('.pdf')) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+      calculatedPages = pdf.numPages;
+    } catch(e) {
+      console.warn("Could not read PDF pages", e);
+    }
+  }
+
+  updateSummary();
+}
+
+function updateSummary() {
+  if (!selectedFile) return;
+  
+  const pagesSelect = document.getElementById('cfgPages');
+  const pagesText = pagesSelect.options[pagesSelect.selectedIndex].text;
+  const copies = parseInt(document.getElementById('cfgCopies').value) || 1;
+  const type = document.getElementById('cfgType').value;
+  
+  let pagesToPrint = calculatedPages;
+  if (pagesSelect.value === 'odd') pagesToPrint = Math.ceil(calculatedPages / 2);
+  if (pagesSelect.value === 'even') pagesToPrint = Math.floor(calculatedPages / 2);
+  if (pagesSelect.value === 'range') pagesToPrint = calculatedPages; // simplified for now
+  
+  document.getElementById('sumPages').textContent = `${calculatedPages} (${pagesText})`;
+  document.getElementById('sumCopies').textContent = copies;
+  document.getElementById('sumType').textContent = type;
+  
+  const rate = type.includes('Color') ? RATE_COLOR : RATE_BW;
+  let billablePages = pagesToPrint;
+  if (document.getElementById('cfgSide') && document.getElementById('cfgSide').value === 'double') {
+    billablePages = Math.ceil(pagesToPrint / 2);
+  }
+  const totalCost = billablePages * copies * rate;
+  document.getElementById('sumCost').textContent = '₹ ' + totalCost.toFixed(2);
+}
+
+async function submitUpload() {
+  if (!selectedFile) { toast('Please select a file first.', 'error'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-spinner"></div> Uploading…';
+
+  const prog = document.getElementById('uploadProgress');
+  const bar  = document.getElementById('progBar');
+  const lbl  = document.getElementById('progLabel');
+  prog.classList.add('show');
+
+  // Simulate visual progress while fetch runs
+  let w = 0;
+  const fakeIv = setInterval(() => { if (w < 80) { w += 5; bar.style.width = w + '%'; lbl.textContent = `Uploading… ${w}%`; } }, 200);
+
+  try {
+    const type = document.getElementById('cfgType').value;
+    const copies = parseInt(document.getElementById('cfgCopies').value) || 1;
+    const rate = type.includes('Color') ? RATE_COLOR : RATE_BW;
+    
+    let pagesToPrint = calculatedPages;
+    const pagesSelect = document.getElementById('cfgPages').value;
+    if (pagesSelect === 'odd') pagesToPrint = Math.ceil(calculatedPages / 2);
+    if (pagesSelect === 'even') pagesToPrint = Math.floor(calculatedPages / 2);
+    
+    let billablePages = pagesToPrint;
+    if (document.getElementById('cfgSide') && document.getElementById('cfgSide').value === 'double') {
+      billablePages = Math.ceil(pagesToPrint / 2);
+    }
+    
+    const totalCost = billablePages * copies * rate;
+
+    const fd = new FormData();
+    fd.append('file',   selectedFile);
+    fd.append('pages',  billablePages);
+    fd.append('copies', copies);
+    fd.append('type',   type);
+    fd.append('paper',  document.getElementById('cfgPaper').value);
+    fd.append('orient', document.getElementById('cfgOrient').value);
+    fd.append('bind',   document.getElementById('cfgBind').value);
+    fd.append('side',   document.getElementById('cfgSide').value);
+
+    const res = await fetch(API_BASE + '/upload', { method:'POST', body:fd, credentials:'include' });
+    clearInterval(fakeIv);
+
+    if (res.ok) {
+      const data = await res.json();
+      bar.style.width = '100%'; lbl.textContent = '✅ Upload complete! Redirecting to payment…';
+      toast('Document uploaded! Redirecting to payment…', 'success');
+
+      setTimeout(() => {
+        window.location.href = `/payment?amount=${totalCost.toFixed(2)}&job_id=${data.job_id}`;
+      }, 1000);
+
+    } else {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || `Server error ${res.status}`);
+    }
+  } catch(err) {
+    clearInterval(fakeIv);
+    bar.style.width = '100%'; bar.style.background = '#f87171';
+    lbl.textContent = '❌ Upload failed: ' + err.message;
+    toast('Upload failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '• SUBMIT PRINT REQUEST';
+    setTimeout(() => { prog.classList.remove('show'); bar.style.width = '0'; bar.style.background = ''; }, 4000);
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   PAGE: MY DOCUMENTS
+════════════════════════════════════════════════════ */
+let allDocs = [];
+let activeDocFilter = 'all';
+
+async function loadDocuments() {
+  const wrap = document.getElementById('docsTableWrap');
+  wrap.innerHTML = '<div style="padding:32px"><div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px"></div></div>';
+
+  try {
+    const data = await apiFetch('/get-documents');
+    allDocs = data.documents || data || [];
+    document.getElementById('docBadge').textContent = allDocs.length;
+    renderDocsTable(allDocs);
+  } catch(e) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Could not load documents. Backend not connected.</div></div>';
+  }
+}
+
+function renderDocsTable(docs) {
+  const wrap = document.getElementById('docsTableWrap');
+  if (!docs.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No documents uploaded yet. Go to Upload to add files.</div></div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="tbl-wrap" style="padding:0 2px">
+      <table>
+        <thead><tr><th>#</th><th>File Name</th><th>Type</th><th>Size</th><th>Upload Date</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          ${docs.map((d, i) => `
+            <tr>
+              <td class="td-muted" style="font-size:11px;color:var(--gold-dim)">${String(i+1).padStart(2,'0')}</td>
+              <td class="td-name">${fileIcon(d.name || d.filename)} ${escHtml(d.name || d.filename || '—')}</td>
+              <td class="td-muted">${escHtml((d.type || d.file_type || '—').toUpperCase())}</td>
+              <td class="td-muted">${escHtml(d.size || d.file_size || '—')}</td>
+              <td class="td-muted">${escHtml(d.date || d.upload_date || '—')}</td>
+              <td><span class="badge b-${(d.status||'pending').toLowerCase()}">${escHtml(d.status || 'Pending')}</span></td>
+              <td class="td-actions">
+                <button class="btn-outline btn-sm" onclick="viewDoc('${escAttr(d.id || d._id || '')}')">👁 View</button>
+                <button class="btn-outline btn-sm" onclick="openRenameModal('${escAttr(d.id || d._id || '')}', '${escAttr(d.name || d.filename || '')}')">✏️ Rename</button>
+                <button class="btn-danger" onclick="deleteDoc('${escAttr(d.id || d._id || '')}', this)">🗑 Delete</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function filterDocs(chip, type, search) {
+  if (chip) {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeDocFilter = type;
+  }
+  const q = (search !== undefined ? search : (document.getElementById('docSearch').value || '')).toLowerCase();
+  const t = activeDocFilter;
+  const filtered = allDocs.filter(d => {
+    const name = (d.name || d.filename || '').toLowerCase();
+    const dtype = (d.type || d.file_type || '').toLowerCase();
+    const matchType = t === 'all' || dtype.includes(t) || name.endsWith('.' + t);
+    const matchSearch = !q || name.includes(q);
+    return matchType && matchSearch;
+  });
+  renderDocsTable(filtered);
+}
+
+async function deleteDoc(id, btn) {
+  if (!id) { toast('Invalid document ID', 'error'); return; }
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await apiFetch(`/delete-document/${id}`, { method: 'DELETE' });
+    toast('Document deleted successfully.', 'success');
+    allDocs = allDocs.filter(d => (d.id || d._id) != id);
+    renderDocsTable(allDocs);
+    document.getElementById('docBadge').textContent = allDocs.length;
+  } catch(e) {
+    toast('Failed to delete document.', 'error');
+    btn.disabled = false; btn.textContent = '🗑 Delete';
+  }
+}
+
+function viewDoc(id) {
+  if (!id) return;
+  window.open(API_BASE + '/view-document/' + id, '_blank');
+}
+
+function openRenameModal(id, currentFullName) {
+  if (!id) return;
+
+  // Extract base name without extension
+  const dotIndex = currentFullName.lastIndexOf('.');
+  const baseName = dotIndex !== -1 ? currentFullName.substring(0, dotIndex) : currentFullName;
+
+  document.getElementById('renameDocId').value = id;
+  const input = document.getElementById('renameInput');
+  input.value = baseName;
+
+  const modal = document.getElementById('renameModal');
+  modal.classList.add('show');
+
+  setTimeout(() => input.focus(), 150);
+}
+
+function closeRenameModal() {
+  document.getElementById('renameModal').classList.remove('show');
+}
+
+// Add escape listener to close modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeRenameModal();
+  }
+});
+
+async function submitRename() {
+  const id = document.getElementById('renameDocId').value;
+  const input = document.getElementById('renameInput');
+  const newName = input.value.trim();
+
+  if (!newName) {
+    toast('Document name cannot be empty', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('confirmRenameBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    const response = await fetch(API_BASE + '/api/rename-document/' + id, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ new_name: newName }),
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      let errMsg = 'Failed to rename document.';
+      if (response.status === 404) {
+        errMsg = 'Endpoint not found (404). Please restart your Flask server process!';
+      } else {
+        try {
+          const data = await response.json();
+          errMsg = data.message || errMsg;
+        } catch (_) {}
+      }
+      toast(errMsg, 'error');
+      return;
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      toast('Document renamed successfully', 'success');
+      closeRenameModal();
+      await loadDocuments(); // Refresh dashboard documents table
+    } else {
+      toast(data.message || 'Failed to rename document', 'error');
+    }
+  } catch(e) {
+    console.error(e);
+    toast('Error connecting to the server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   PAGE: PRINT JOBS
+════════════════════════════════════════════════════ */
+let allJobs = [];
+let activeJobFilter = 'all';
+
+async function loadPrintJobs() {
+  const wrap = document.getElementById('printJobsWrap');
+  wrap.innerHTML = '<div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px"></div>';
+
+  try {
+    const data = await apiFetch('/get-print-jobs');
+    allJobs = data.jobs || data || [];
+
+    // mini stats
+    const p = allJobs.filter(j => j.status?.toLowerCase() === 'pending').length;
+    const a = allJobs.filter(j => j.status?.toLowerCase() === 'approved').length;
+    const c = allJobs.filter(j => j.status?.toLowerCase() === 'printed').length;
+    document.getElementById('jsP').textContent = p;
+    document.getElementById('jsA').textContent = a;
+    document.getElementById('jsC').textContent = c;
+    document.getElementById('jobBadge').textContent = p;
+
+    renderJobsTable(allJobs);
+  } catch(e) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Could not load print jobs. Backend not connected.</div></div>';
+    ['jsP','jsA','jsC'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+}
+
+function renderJobsTable(jobs) {
+  const wrap = document.getElementById('printJobsWrap');
+  if (!jobs.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🖨️</div><div class="empty-text">No print jobs found.</div></div>';
+    return;
+  }
+  const badgeMap = { pending:'b-pending', approved:'b-approved', printed:'b-printed', completed:'b-printed', rejected:'b-rejected' };
+  wrap.innerHTML = `
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Document</th><th>Pages</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          ${jobs.map((j, i) => {
+            const st = (j.status || 'pending').toLowerCase();
+            const badgeCls = badgeMap[st] || 'b-pending';
+            return `<tr>
+              <td class="td-muted" style="font-size:11px;color:var(--gold-dim)">${String(i+1).padStart(2,'0')}</td>
+              <td class="td-name">📄 ${escHtml(j.document || j.file_name || j.filename || j.name || '—')}</td>
+              <td class="td-muted">${escHtml(String(j.pages || '—'))}p</td>
+              <td><span class="badge ${badgeCls}">${escHtml(j.status || 'Pending')}</span></td>
+              <td class="td-actions">
+                <button class="btn-outline btn-sm" onclick="viewDoc('${escAttr(j.doc_id || '')}')">👁 View</button>
+                ${st === 'pending' ? `<button class="btn-danger" onclick="cancelJob('${escAttr(j.id || j._id || '')}',this)">✕ Cancel</button>` : ''}
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function filterJobs(tab, status) {
+  document.querySelectorAll('.job-tab').forEach(t => {
+    t.style.background = 'transparent'; t.style.borderColor = 'transparent'; t.style.color = 'var(--text-sec)';
+  });
+  tab.style.background = 'rgba(244,201,78,.08)'; tab.style.borderColor = 'var(--border-2)'; tab.style.color = 'var(--gold)';
+  activeJobFilter = status;
+  const filtered = status === 'all' ? allJobs : allJobs.filter(j => j.status?.toLowerCase() === status);
+  renderJobsTable(filtered);
+}
+
+async function cancelJob(id, btn) {
+  if (!id) { toast('Invalid job ID', 'error'); return; }
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    await apiFetch(`/cancel-job/${id}`, { method: 'POST' });
+    toast('Job cancelled.', 'info');
+    await loadPrintJobs();
+  } catch(e) {
+    toast('Failed to cancel job.', 'error');
+    btn.disabled = false; btn.textContent = '✕ Cancel';
+  }
+}
+
+function showQR(src) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px)';
+  overlay.innerHTML = `<div style="background:rgba(8,5,18,.95);border:1px solid rgba(244,201,78,.3);border-radius:20px;padding:32px;text-align:center;max-width:320px">
+    <div style="font-size:13px;color:var(--gold);margin-bottom:16px;letter-spacing:2px">• YOUR QR CODE</div>
+    <img src="${src}" style="width:200px;height:200px;border-radius:12px;border:2px solid rgba(244,201,78,.3)" onerror="this.alt='QR not available'"/>
+    <div style="margin-top:16px;font-size:13px;color:rgba(240,230,255,.5);padding:8px 20px;border:1px solid rgba(244,201,78,.3);border-radius:8px;background:transparent;color:var(--gold);cursor:pointer;font-weight:600">Close</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+/* ════════════════════════════════════════════════════
+   PAGE: PROFILE
+════════════════════════════════════════════════════ */
+async function loadProfile() {
+  try {
+    const data = await apiFetch('/get-profile');
+    const p = data.profile || data;
+
+    const name = p.name || p.full_name || 'User';
+
+    document.getElementById('profileName').textContent = name;
+    setUserMeta(name, p.profile_photo);
+
+    // Stats
+    document.getElementById('psD').textContent  = p.documents  || '—';
+    document.getElementById('psP').textContent  = p.completed  || '—';
+    document.getElementById('psPe').textContent = p.pending    || '—';
+
+    // Meta rows
+    document.getElementById('profileMeta').innerHTML = [
+      ['Member Since', p.member_since || p.created_at || '—'],
+      ['Last Login',   p.last_login   || 'Today'],
+      ['Account ID',   `<span style="font-size:12px;color:var(--gold)">#${p.id || p._id || '—'}</span>`],
+      ['Status',       `<span class="badge b-approved">Active</span>`],
+    ].map(([k,v]) => `
+      <div class="profile-detail-row">
+        <span class="pdr-key">${k}</span>
+        <span class="pdr-val">${v}</span>
+      </div>`).join('');
+
+    // Edit form
+    document.getElementById('profileForm').innerHTML = `
+      <div class="form-row">
+        <div class="input-group"><label class="input-label">First Name</label>
+          <input class="input-field" id="pfFirst" value="${escAttr(p.first_name || name.split(' ')[0] || '')}"/></div>
+        <div class="input-group"><label class="input-label">Last Name</label>
+          <input class="input-field" id="pfLast" value="${escAttr(p.last_name || name.split(' ').slice(1).join(' ') || '')}"/></div>
+      </div>
+      <div class="input-group"><label class="input-label">Email Address</label>
+        <input class="input-field" type="email" id="pfEmail" value="${escAttr(p.email || '')}"/></div>
+      <div class="input-group"><label class="input-label">Phone Number</label>
+        <input class="input-field" type="tel" id="pfPhone" value="${escAttr(p.phone || p.mobile || '')}"/></div>
+      <div class="form-row">
+        <div class="input-group"><label class="input-label">Department</label>
+          <input class="input-field" id="pfDept" value="${escAttr(p.department || '')}"/></div>
+        <div class="input-group"><label class="input-label">Roll Number</label>
+          <input class="input-field" id="pfRoll" value="${escAttr(p.roll_no || p.roll_number || '')}"/></div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+        <div class="panel-title" style="margin-bottom:14px">Change Password</div>
+        <div class="form-row">
+          <div class="input-group"><label class="input-label">New Password</label>
+            <input class="input-field" type="password" id="pfPwd" placeholder="••••••••"/></div>
+          <div class="input-group"><label class="input-label">Confirm Password</label>
+            <input class="input-field" type="password" id="pfPwd2" placeholder="••••••••"/></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:4px">
+        <button class="btn-gold" style="flex:1;justify-content:center" onclick="saveProfile()">• Save Changes</button>
+        <button class="btn-outline" onclick="loadProfile()">↺ Reset</button>
+      </div>`;
+  } catch(e) {
+    toast('Could not load profile. Backend not connected.', 'error');
+    document.getElementById('profileForm').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Profile unavailable. Check backend.</div></div>';
+  }
+}
+
+async function saveProfile() {
+  const body = {
+    first_name: document.getElementById('pfFirst')?.value,
+    last_name:  document.getElementById('pfLast')?.value,
+    email:      document.getElementById('pfEmail')?.value,
+    phone:      document.getElementById('pfPhone')?.value,
+    department: document.getElementById('pfDept')?.value,
+    roll_no:    document.getElementById('pfRoll')?.value,
+  };
+  const pwd = document.getElementById('pfPwd')?.value;
+  const pwd2 = document.getElementById('pfPwd2')?.value;
+  if (pwd) {
+    if (pwd !== pwd2) { toast('Passwords do not match.', 'error'); return; }
+    body.password = pwd;
+  }
+  try {
+    await apiFetch('/update-profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    toast('Profile updated successfully!', 'success');
+    loadProfile();
+  } catch(e) {
+    toast('Failed to update profile.', 'error');
+  }
+}
+
+async function uploadProfilePhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+  if (!allowed.includes(file.type)) {
+    toast('Invalid file type. Only PNG, JPG, and GIF are allowed.', 'error');
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    toast('File is too large. Maximum size is 2MB.', 'error');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  const btn = document.querySelector('#page-profile .profile-card .btn-gold');
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading-spinner"></div> Uploading…';
+
+  try {
+    const res = await fetch(API_BASE + '/upload-profile-photo', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    if (res.ok) {
+      toast('Profile photo updated successfully!', 'success');
+      await loadProfile();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || `Server error ${res.status}`);
+    }
+  } catch (err) {
+    toast('Failed to upload photo: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+    event.target.value = '';
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   LOGOUT
+════════════════════════════════════════════════════ */
+async function doLogout() {
+  try {
+    await fetch(API_BASE + '/logout', { method:'POST', credentials:'include' });
+  } catch(_) {}
+  toast('Signed out. Redirecting…', 'info');
+  setTimeout(() => { window.location.href = '/'; }, 1500);
+}
+
+/* ════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════ */
+function setUserMeta(name, profilePhotoUrl) {
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  ['sidebarInitials','headerInitials','profileAvatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (profilePhotoUrl) {
+        el.innerHTML = `<img src="${profilePhotoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.style.display='none'; this.parentElement.textContent='${initials}';" />`;
+      } else {
+        el.textContent = initials;
+      }
+    }
+  });
+  const sn = document.getElementById('sidebarName'); if (sn) sn.textContent = name;
+  const hn = document.getElementById('headerName');  if (hn) hn.textContent = name;
+  const wn = document.getElementById('welcomeName'); if (wn) wn.textContent = name;
+}
+
+function animateCount(id, target) {
+  const el = document.getElementById(id);
+  let start = 0;
+  const dur = 900, step = 16;
+  const inc = target / (dur / step);
+  const iv = setInterval(() => {
+    start = Math.min(start + inc, target);
+    el.textContent = Math.round(start);
+    if (start >= target) clearInterval(iv);
+  }, step);
+}
+
+function fileIcon(name = '') {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = { pdf:'📕', docx:'📘', xlsx:'📗', pptx:'📒', jpg:'🖼️', jpeg:'🖼️', png:'🖼️', txt:'📄' };
+  return map[ext] || '📄';
+}
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) {
+  return String(s ?? '').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ════════════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  loadDashboard();
+});
+</script>
+</body>
+</html>
