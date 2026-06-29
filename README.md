@@ -318,42 +318,33 @@ http://127.0.0.1:5000
 
 
 
-Add screenshots inside a folder named:
+## 📸 Project Screenshots
 
+The following screenshots demonstrate the core functionalities of the **QR Code Based Smart Printing System**.
 
+| Login Page | Admin Login |
+|------------|-------------|
+| ![](screenshots/login.png) | ![](screenshots/admin-login.png) |
 
-```
+| Admin Dashboard | User Dashboard |
+|-----------------|----------------|
+| ![](screenshots/admin-dashboard.png) | ![](screenshots/user-dashboard.png) |
 
-screenshots/
+| Upload Document | Payment |
+|-----------------|---------|
+| ![](screenshots/upload-document.png) | ![](screenshots/payment.png) |
 
-```
+| Print Requests | Waiting Page |
+|----------------|--------------|
+| ![](screenshots/print-requests.png) | ![](screenshots/waiting.png) |
 
+| User Analytics | User Feedbacks |
+|----------------|----------------|
+| ![](screenshots/user-analytics.png) | ![](screenshots/user-feedbacks.png) |
 
-
-Example:
-
-
-
-\- Login Page
-
-\- Registration Page
-
-\- User Dashboard
-
-\- Admin Dashboard
-
-\- Upload Document
-
-\- Waiting Page
-
-\- Print Status
-
-\- Feedback Page
-
-
-
-\---
-
+| User Management | Password Reset |
+|-----------------|----------------|
+| ![](screenshots/users.png) | ![](screenshots/password-reset.png) |
 
 
 \## 🏗️ System Architecture
